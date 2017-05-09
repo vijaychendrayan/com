@@ -2,9 +2,7 @@ package com.cerner.automation;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.poi.ss.usermodel.Row;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.TakesScreenshot;
-import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.*;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -23,9 +21,10 @@ public class Engine {
     public String processNum;
     public String processUnitNum;
     private Dictionary dict = new Hashtable();
-    private String [] colKey = new String[]{"prcsID","prcsDescr","prcsSeqNum","prcsSeqDescr","driver","action","type","match","param","active","screenShot","onError"};
+    private String [] colKey = new String[]{"prcsID","prcsDescr","prcsSeqNum","prcsSeqDescr","driver","action","type","match","parameter","active","screenShot","onError"};
     public String colValue;
     public String colDriver;
+    public String colAction;
     public String screenShotPath;
     WebDriver webDriver;
 
@@ -51,15 +50,40 @@ public class Engine {
         copyHashtable(row);
         System.out.println(dict.get("prcsID")+" "+dict.get("prcsSeqNum"));
         colDriver = (String) dict.get("driver");
-        if(colDriver.equals("Web")){
-            System.out.println("In Web");
-            if(dict.get("action").toString().equals("Navigate")){
+        colAction = (String) dict.get("action");
+        //Navigate
+        System.out.println("Driver : "+colDriver+" colAction : "+colAction);
+        if(colDriver.equals("Web")) {
+            System.out.println("In Web ***");
+            if (dict.get("action").toString().equals("Navigate")) {
                 //webDriver.get(dict.get("match").toString());
-                webNavigate(webDriver,dict.get("match").toString(),dict.get("screenShot").toString());
+                webNavigate(webDriver, dict.get("match").toString(), dict.get("screenShot").toString());
             }
-
+            //Window Event
+            if (colAction.equals("Window")) {
+                System.out.println("In Window even handler");
+                windowEventhandler(webDriver, dict);
+            }
+            //Send Keys
+            if (colAction.equals("SendKeys")) {
+                System.out.println("In Send keys handler");
+                sendKeysEventHandler(webDriver, dict);
+            }
+            //Click Event
+            if (colAction.equals("Click")) {
+                System.out.println("In Click handler");
+                clickEventHandler(webDriver, dict);
+            }
+            //Compare Event
+            if (colAction.equals("Compare")) {
+                System.out.println("In Compare handler");
+                compareEventHandler(webDriver, dict);
+            }
         }
 
+        if(colDriver.equals("Time")){
+            timeEvenHandler(dict);
+        }
         return 0;
     }
 
@@ -79,6 +103,143 @@ public class Engine {
         if(screenShotFlag.equals("Y")){
            takeScreenshot(webdr);
         }
+    }
+
+    public void windowEventhandler (WebDriver webdr,Dictionary dict)throws InterruptedException{
+        if(dict.get("type").toString().equals("Maximize")){
+            webdr.manage().window().maximize();
+        }
+        if(dict.get("screenShot").toString().equals("Y")){
+            takeScreenshot(webdr);
+        }
+    }
+
+    public void sendKeysEventHandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
+        WebElement webElement;
+        // By Xpath
+        if(dict.get("type").toString().equals("Xpath")){
+            webElement = webdr.findElement(By.xpath(dict.get("match").toString()));
+            webElement.sendKeys(dict.get("parameter").toString());
+        }
+        // ID
+        if(dict.get("type").toString().equals("ID")){
+            webElement = webdr.findElement(By.id(dict.get("match").toString()));
+            webElement.sendKeys(dict.get("parameter").toString());
+        }
+        // Class Name
+        if(dict.get("type").toString().equals("ClassName")){
+            webElement = webdr.findElement(By.className(dict.get("match").toString()));
+            webElement.sendKeys(dict.get("parameter").toString());
+        }
+        //CSS Selector
+        if(dict.get("type").toString().equals("CSSSelector")){
+            webElement = webdr.findElement(By.cssSelector(dict.get("match").toString()));
+            webElement.sendKeys(dict.get("parameter").toString());
+        }
+        // Take ScreenShot
+        if(dict.get("screenShot").toString().equals("Y")){
+            takeScreenshot(webdr);
+        }
+    }
+
+    public void clickEventHandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
+        WebElement webElement;
+        // By Xpath
+        if(dict.get("type").toString().equals("Xpath")){
+            webElement = webdr.findElement(By.xpath(dict.get("match").toString()));
+            webElement.click();
+        }
+        // ID
+        if(dict.get("type").toString().equals("ID")){
+            webElement = webdr.findElement(By.id(dict.get("match").toString()));
+            webElement.click();
+        }
+        // Class Name
+        if(dict.get("type").toString().equals("ClassName")){
+            webElement = webdr.findElement(By.className(dict.get("match").toString()));
+            webElement.click();
+        }
+        //CSS Selector
+        if(dict.get("type").toString().equals("CSSSelector")){
+            webElement = webdr.findElement(By.cssSelector(dict.get("match").toString()));
+            webElement.click();
+        }
+        // Take ScreenShot
+        if(dict.get("screenShot").toString().equals("Y")){
+            takeScreenshot(webdr);
+        }
+    }
+
+    public void compareEventHandler(WebDriver webdr,Dictionary dict) throws InterruptedException{
+        WebElement webElement;
+        // Check for Page Title
+        if(dict.get("type").toString().equals("PageTitle")) {
+            if (webdr.getTitle().equals(dict.get("parameter").toString())) {
+                System.out.println("====>Title Matched<====");
+            } else {
+                System.out.println("====>Title NOT Matched<===");
+            }
+        }
+        // Check for string value compare.
+        // Xpath
+        if(dict.get("type").toString().equals("Xpath")){
+                webElement = webdr.findElement(By.xpath(dict.get("match").toString()));
+                if(webElement.getText().equals(dict.get("parameter").toString())){
+                    System.out.println("====>Sting Matched<====");
+                }
+                else {
+                    System.out.println("====>String NOT Matched<===");
+                }
+        }
+        // ID
+        if(dict.get("type").toString().equals("ID")){
+            webElement = webdr.findElement(By.id(dict.get("match").toString()));
+            if(webElement.getText().equals(dict.get("parameter").toString())){
+                System.out.println("====>Sting Matched<====");
+            }
+            else
+            {
+                System.out.println("====>String NOT Matched<===");
+            }
+        }
+        // CSS Selector
+        if(dict.get("type").toString().equals("CSSSelector")){
+            webElement = webdr.findElement(By.cssSelector(dict.get("match").toString()));
+            if(webElement.getText().equals(dict.get("parameter").toString())){
+                System.out.println("====>Sting Matched<====");
+            }
+            else
+            {
+                System.out.println("====>String NOT Matched<===");
+            }
+        }
+        // Class Name
+        if(dict.get("type").toString().equals("ClassName")){
+            webElement = webdr.findElement(By.className(dict.get("match").toString()));
+            if(webElement.getText().equals(dict.get("parameter").toString())){
+                System.out.println("====>Sting Matched<====");
+            }
+            else
+            {
+                System.out.println("====>String NOT Matched<===");
+            }
+        }
+        // Take ScreenShot
+        if(dict.get("screenShot").toString().equals("Y")){
+            takeScreenshot(webdr);
+        }
+
+    }
+
+    public void timeEvenHandler(Dictionary dict)throws InterruptedException{
+        System.out.println("In TimeEvenHandler");
+        String varTime = " ";
+        if(dict.get("action").toString().equals("DelayBy")){
+          varTime = dict.get("parameter").toString();
+          Thread.sleep(Long.valueOf(varTime).longValue());
+        }
+
+
     }
 
     public void takeScreenshot(WebDriver webdr)throws InterruptedException {
@@ -106,8 +267,7 @@ public class Engine {
             result = "PASS";
         else
             result = "FAIL";
-        if(dict.get("active").toString().equals("I"))
-            result ="NORUN";
+
 
         Element unitCase = document.createElement("UnitCase");
         Element seqNum = document.createElement("SeqNum");
