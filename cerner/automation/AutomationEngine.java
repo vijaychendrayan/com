@@ -19,10 +19,8 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import java.io.File;
+import java.io.*;
 
 /**
  * Created by VC024129 on 5/6/2017.
@@ -38,15 +36,9 @@ public class AutomationEngine  {
         Document document = documentBuilder.newDocument();
         Element rootElement = document.createElement("Automation");
         document.appendChild(rootElement);
-
         // - END- XML
-
-        String excelFilePath = "C:\\Users\\VC024129\\Documents\\Vijay\\TestFrameWork\\TestParameter3.xlsx";
-        String driverType;
-        String driverPath;
-        String driverProp;
-        String screenShotFilePath;
-        String xmlFilePath;
+        String excelFilePath = "C:\\Users\\VC024129\\Documents\\Vijay\\TestFrameWork\\TestParameterPPM4.xlsx";
+        String driverType,driverPath,driverProp,screenShotFilePath,xmlFilePath,xslFilePath,htmlFilePath;
         // Setting up Web Driver
         try{
             ExcelFileDriver excelFileDriver = new ExcelFileDriver();
@@ -66,6 +58,10 @@ public class AutomationEngine  {
             rowIterator = excelSheetTestCase.iterator();
             row = rowIterator.next();
             xmlFilePath = row.getCell(0).getRichStringCellValue().getString();
+            row = rowIterator.next();
+            xslFilePath = row.getCell(0).getRichStringCellValue().getString();
+            row = rowIterator.next();
+            htmlFilePath = row.getCell(0).getRichStringCellValue().getString();;
             //Get Screenshot file path
             excelSheetTestCase = excelWorkbook.getSheetAt(2);
             rowIterator = excelSheetTestCase.iterator();
@@ -74,8 +70,6 @@ public class AutomationEngine  {
             engine.setScreenShotPath(screenShotFilePath);
             Sheet sheet = excelWorkbook.getSheetAt(0);
             rowIterator = sheet.iterator();
-
-
             int i = 0;
             Element testCase = document.createElement("TestCase");
             rootElement.appendChild(testCase);
@@ -90,10 +84,12 @@ public class AutomationEngine  {
                     prcsReturnValue = engine.processRequest(rowNext);
                 }
                 rootElement.appendChild(engine.getXMLProcessNode(document,rowNext,prcsReturnValue));
+                System.out.println("OnError : "+rowNext.getCell(10).getRichStringCellValue().getString()+" prcs : "+prcsReturnValue);
+                if(rowNext.getCell(11).getRichStringCellValue().getString().equals("Stop") && prcsReturnValue != 0){
+                    break;
+                }
             }
 
-            engine.webDriver.close();
-            excelWorkbook.close();
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
             Transformer transformer = transformerFactory.newTransformer();
             DOMSource source = new DOMSource(document);
@@ -101,6 +97,20 @@ public class AutomationEngine  {
             transformer.transform(source,result);
             StreamResult consoleResult = new StreamResult(System.out);
             transformer.transform(source,consoleResult);
+            //Thread.sleep(5000);
+            // Generate HTML report using XSLT
+            System.out.println("--------");
+            System.out.println("XML File : "+xmlFilePath);
+            System.out.println("XSL File : "+xslFilePath);
+            System.out.println("HTML File : "+htmlFilePath);
+            TransformerFactory transformerFactoryHTML = TransformerFactory.newInstance();
+            Transformer transformHTML = transformerFactoryHTML.newTransformer(new javax.xml.transform.stream.StreamSource(xslFilePath));
+            transformHTML.transform(new javax.xml.transform.stream.StreamSource(xmlFilePath), new javax.xml.transform.stream.StreamResult(htmlFilePath));
+            engine.webDriver.get(htmlFilePath);
+            Thread.sleep(5000);
+            engine.webDriver.close();
+            excelWorkbook.close();
+
         }catch (NullPointerException e){e.printStackTrace();}
         catch (Exception e){e.printStackTrace();}
 
