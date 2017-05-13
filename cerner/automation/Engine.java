@@ -4,11 +4,13 @@ import jdk.nashorn.internal.ir.CatchNode;
 import org.apache.commons.io.FileUtils;
 import org.apache.poi.ss.usermodel.Row;
 import org.openqa.selenium.*;
+import org.openqa.selenium.Dimension;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import javax.xml.parsers.DocumentBuilder;
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.Dictionary;
@@ -24,6 +26,7 @@ public class Engine {
     private Dictionary dict = new Hashtable();
     private String [] colKey = new String[]{"prcsID","prcsDescr","prcsSeqNum","prcsSeqDescr","driver","action","type","match","parameter","active","screenShot","onError"};
     public String colValue;
+    public String errorString = "NA";
     public String colDriver;
     public String colAction;
     public String screenShotPath;
@@ -72,6 +75,11 @@ public class Engine {
                 System.out.println("In Send keys handler");
                 prcsStatus = sendKeysEventHandler(webDriver, dict);
             }
+            //Clear
+            if(colAction.equals("Clear")){
+                System.out.println("In Clear event");
+                prcsStatus = clearEventhandler(webDriver,dict);
+            }
             //Click Event
             if (colAction.equals("Click")) {
                 System.out.println("In Click handler");
@@ -109,6 +117,7 @@ public class Engine {
             }
         }
         catch (Exception e){
+            errorString = e.toString();
             return 1;
 
         }
@@ -117,16 +126,26 @@ public class Engine {
     }
 
     public int windowEventhandler (WebDriver webdr,Dictionary dict)throws InterruptedException{
+        Dimension dimension;
         try{
 
             if(dict.get("type").toString().equals("Maximize")){
                 webdr.manage().window().maximize();
+            }
+            if(dict.get("type").toString().equals("Minimize")){
+                int width=0,height =0;
+                String[] dimen = dict.get("parameter").toString().split(",");
+                width = Integer.parseInt(dimen[0]) ;
+                height = Integer.parseInt(dimen[1]) ;
+                dimension = new Dimension(width,height);
+                webdr.manage().window().setSize(dimension);
             }
             if(dict.get("screenShot").toString().equals("Y")){
                 takeScreenshot(webdr);
             }
 
         }catch (Exception e){
+            errorString = e.toString();
             return 1;
         }
         return 0;
@@ -161,10 +180,46 @@ public class Engine {
                 takeScreenshot(webdr);
             }
         }catch (Exception e){
+            errorString = e.toString();
             return 1;
         }
         return 0;
     }
+
+    public int clearEventhandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
+        WebElement webElement;
+        try{
+            // By Xpath
+            if(dict.get("type").toString().equals("Xpath")){
+                webElement = webdr.findElement(By.xpath(dict.get("match").toString()));
+                webElement.clear();
+            }
+            // ID
+            if(dict.get("type").toString().equals("ID")){
+                webElement = webdr.findElement(By.id(dict.get("match").toString()));
+                webElement.clear();
+            }
+            // Class Name
+            if(dict.get("type").toString().equals("ClassName")){
+                webElement = webdr.findElement(By.className(dict.get("match").toString()));
+                webElement.clear();
+            }
+            //CSS Selector
+            if(dict.get("type").toString().equals("CSSSelector")){
+                webElement = webdr.findElement(By.cssSelector(dict.get("match").toString()));
+                webElement.clear();
+            }
+            // Take ScreenShot
+            if(dict.get("screenShot").toString().equals("Y")){
+                takeScreenshot(webdr);
+            }
+        }catch (Exception e){
+            errorString = e.toString();
+            return 1;
+        }
+        return 0;
+    }
+
 
     public int clickEventHandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
         WebElement webElement;
@@ -194,6 +249,7 @@ public class Engine {
                 takeScreenshot(webdr);
             }
         }catch (Exception e){
+            errorString = e.toString();
             return 1;
         }
 
@@ -205,19 +261,22 @@ public class Engine {
     public int compareEventHandler(WebDriver webdr,Dictionary dict) throws InterruptedException{
         WebElement webElement;
         int returnFlag = 1;
-        // Check for Page Title
-        if(dict.get("type").toString().equals("PageTitle")) {
-            if (webdr.getTitle().equals(dict.get("parameter").toString())) {
-                System.out.println("====>Title Matched<====");
-                returnFlag = 0;
-            } else {
-                System.out.println("====>Title NOT Matched<===");
-                returnFlag = 1;
+        try{
+
+            // Check for Page Title
+            if(dict.get("type").toString().equals("PageTitle")) {
+                if (webdr.getTitle().equals(dict.get("parameter").toString())) {
+                    System.out.println("====>Title Matched<====");
+                    returnFlag = 0;
+                } else {
+                    System.out.println("====>Title NOT Matched<===");
+                    errorString = "====>Title NOT Matched<===";
+                    returnFlag = 1;
+                }
             }
-        }
-        // Check for string value compare.
-        // Xpath
-        if(dict.get("type").toString().equals("Xpath")){
+            // Check for string value compare.
+            // Xpath
+            if(dict.get("type").toString().equals("Xpath")){
                 webElement = webdr.findElement(By.xpath(dict.get("match").toString()));
                 if(webElement.getText().equals(dict.get("parameter").toString())){
                     System.out.println("====>Sting Matched<====");
@@ -225,51 +284,60 @@ public class Engine {
                 }
                 else {
                     System.out.println("====>String NOT Matched<===");
+                    errorString = "====>Sting NOT Matched<===";
                     returnFlag = 1;
                 }
-        }
-        // ID
-        if(dict.get("type").toString().equals("ID")){
-            webElement = webdr.findElement(By.id(dict.get("match").toString()));
-            if(webElement.getText().equals(dict.get("parameter").toString())){
-                System.out.println("====>Sting Matched<====");
-                returnFlag = 0;
             }
-            else
-            {
-                System.out.println("====>String NOT Matched<===");
-                returnFlag = 1;
+            // ID
+            if(dict.get("type").toString().equals("ID")){
+                webElement = webdr.findElement(By.id(dict.get("match").toString()));
+                if(webElement.getText().equals(dict.get("parameter").toString())){
+                    System.out.println("====>Sting Matched<====");
+                    returnFlag = 0;
+                }
+                else
+                {
+                    System.out.println("====>String NOT Matched<===");
+                    errorString = "====>Sting NOT Matched<===";
+                    returnFlag = 1;
+                }
             }
-        }
-        // CSS Selector
-        if(dict.get("type").toString().equals("CSSSelector")){
-            webElement = webdr.findElement(By.cssSelector(dict.get("match").toString()));
-            if(webElement.getText().equals(dict.get("parameter").toString())){
-                System.out.println("====>Sting Matched<====");
-                returnFlag = 0;
+            // CSS Selector
+            if(dict.get("type").toString().equals("CSSSelector")){
+                webElement = webdr.findElement(By.cssSelector(dict.get("match").toString()));
+                if(webElement.getText().equals(dict.get("parameter").toString())){
+                    System.out.println("====>Sting Matched<====");
+                    returnFlag = 0;
+                }
+                else
+                {
+                    System.out.println("====>String NOT Matched<===");
+                    errorString = "====>Sting NOT Matched<===";
+                    returnFlag = 1;
+                }
             }
-            else
-            {
-                System.out.println("====>String NOT Matched<===");
-                returnFlag = 1;
+            // Class Name
+            if(dict.get("type").toString().equals("ClassName")){
+                webElement = webdr.findElement(By.className(dict.get("match").toString()));
+                if(webElement.getText().equals(dict.get("parameter").toString())){
+                    System.out.println("====>Sting Matched<====");
+                    returnFlag = 0;
+                }
+                else
+                {
+                    System.out.println("====>String NOT Matched<===");
+                    errorString = "====>Sting NOT Matched<===";
+                    returnFlag = 1;
+                }
             }
-        }
-        // Class Name
-        if(dict.get("type").toString().equals("ClassName")){
-            webElement = webdr.findElement(By.className(dict.get("match").toString()));
-            if(webElement.getText().equals(dict.get("parameter").toString())){
-                System.out.println("====>Sting Matched<====");
-                returnFlag = 0;
+            // Take ScreenShot
+            if(dict.get("screenShot").toString().equals("Y")){
+                takeScreenshot(webdr);
             }
-            else
-            {
-                System.out.println("====>String NOT Matched<===");
-                returnFlag = 1;
-            }
-        }
-        // Take ScreenShot
-        if(dict.get("screenShot").toString().equals("Y")){
-            takeScreenshot(webdr);
+
+        }catch (Exception e){
+            errorString = e.toString();
+            returnFlag = 1;
         }
 
         return  returnFlag;
@@ -297,14 +365,14 @@ public class Engine {
 
     }
 
-    public Node getXMLProcessNode(Document document,Row row,int returnValue){
+    public Node getXMLProcessNode(Document document,Row row,int returnValue, String errorString){
         copyHashtable(row);
         Element prcsRow = document.createElement("TestCase");
-        prcsRow.appendChild(getXMLPrcsElement(document,dict,returnValue));
+        prcsRow.appendChild(getXMLPrcsElement(document,dict,returnValue,errorString));
         return  prcsRow;
     }
 
-    public Node getXMLPrcsElement(Document document,Dictionary dict,int returnValue){
+    public Node getXMLPrcsElement(Document document,Dictionary dict,int returnValue,String errorString ){
         String activeRow,result = "NORUN";
         activeRow =  dict.get("active").toString();
         if (activeRow.equals("A")){
@@ -322,18 +390,22 @@ public class Engine {
         Element unitDescr = document.createElement("UnitDescr");
         Element unitActive = document.createElement("Active");
         Element unitResult = document.createElement("Result");
+        Element errorStr = document.createElement("Exception");
         prcsID.appendChild(document.createTextNode(dict.get("prcsID").toString()));
         prcsDescr.appendChild(document.createTextNode(dict.get("prcsDescr").toString()));
         seqNum.appendChild(document.createTextNode(dict.get("prcsSeqNum").toString()));
         unitDescr.appendChild(document.createTextNode(dict.get("prcsSeqDescr").toString()));
         unitActive.appendChild(document.createTextNode(dict.get("active").toString()));
         unitResult.appendChild(document.createTextNode(result));
+        errorStr.appendChild(document.createTextNode(errorString));
+
         unitCase.appendChild(prcsID);
         unitCase.appendChild(prcsDescr);
         unitCase.appendChild(seqNum);
         unitCase.appendChild(unitDescr);
         unitCase.appendChild(unitActive);
         unitCase.appendChild(unitResult);
+        unitCase.appendChild(errorStr);
         return unitCase;
     }
 }

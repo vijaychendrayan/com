@@ -37,7 +37,8 @@ public class AutomationEngine  {
         Element rootElement = document.createElement("Automation");
         document.appendChild(rootElement);
         // - END- XML
-        String excelFilePath = "C:\\Users\\VC024129\\Documents\\Vijay\\TestFrameWork\\TestParameterPPM4.xlsx";
+        //String excelFilePath = "C:\\Users\\VC024129\\Documents\\Vijay\\TestFrameWork\\TestParameterPPM4.xlsx";
+        String excelFilePath = "C:\\Users\\VC024129\\Documents\\Vijay\\TestFrameWork\\TestParameterHomeTest.xlsx";
         String driverType,driverPath,driverProp,screenShotFilePath,xmlFilePath,xslFilePath,htmlFilePath;
         // Setting up Web Driver
         try{
@@ -83,7 +84,7 @@ public class AutomationEngine  {
                 if (rowNext.getCell(9).getRichStringCellValue().getString().equals("A")){
                     prcsReturnValue = engine.processRequest(rowNext);
                 }
-                rootElement.appendChild(engine.getXMLProcessNode(document,rowNext,prcsReturnValue));
+                rootElement.appendChild(engine.getXMLProcessNode(document,rowNext,prcsReturnValue,engine.errorString));
                 System.out.println("OnError : "+rowNext.getCell(10).getRichStringCellValue().getString()+" prcs : "+prcsReturnValue);
                 if(rowNext.getCell(11).getRichStringCellValue().getString().equals("Stop") && prcsReturnValue != 0){
                     break;
@@ -97,8 +98,8 @@ public class AutomationEngine  {
             transformer.transform(source,result);
             StreamResult consoleResult = new StreamResult(System.out);
             transformer.transform(source,consoleResult);
-            //Thread.sleep(5000);
-            // Generate HTML report using XSLT
+            Thread.sleep(5000);
+            //Generate HTML report using XSLT
             System.out.println("--------");
             System.out.println("XML File : "+xmlFilePath);
             System.out.println("XSL File : "+xslFilePath);
