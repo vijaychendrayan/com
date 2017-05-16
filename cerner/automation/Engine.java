@@ -17,7 +17,7 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 
 
-public class Engine {
+class Engine {
     public int processRequestCont;
     public String processDescr;
     public String processUnitDescr;
@@ -27,10 +27,10 @@ public class Engine {
     private String [] colKey = new String[]{"prcsID","prcsDescr","prcsSeqNum","prcsSeqDescr","driver","action","type","match","parameter","active","screenShot","onError"};
     public String colValue;
     public String errorString = "NA";
-    public String colDriver;
-    public String colAction;
-    public String screenShotPath;
-    public int prcsStatus;
+    private String colDriver;
+    private String colAction;
+    private String screenShotPath;
+    private int prcsStatus;
     WebDriver webDriver;
 
 
@@ -90,6 +90,10 @@ public class Engine {
                 System.out.println("In Compare handler");
                 prcsStatus = compareEventHandler(webDriver, dict);
             }
+            if(colAction.equals("CheckMinificaiton")){
+                System.out.println("In CheckMinificaiton");
+                prcsStatus = checkMinification(webDriver,dict);
+            }
         }
 
         if(colDriver.equals("Time")){
@@ -98,7 +102,7 @@ public class Engine {
         return prcsStatus;
     }
 
-    public void copyHashtable(Row row){
+    private void copyHashtable(Row row){
 
         for (int i=0; i<row.getLastCellNum();i++)
         {
@@ -108,7 +112,7 @@ public class Engine {
 
     }
 
-    public int webNavigate(WebDriver webdr,String url,String screenShotFlag) throws InterruptedException{
+    private int webNavigate(WebDriver webdr, String url, String screenShotFlag) throws InterruptedException{
         try {
             webdr.get(url);
 
@@ -125,7 +129,7 @@ public class Engine {
         return 0;
     }
 
-    public int windowEventhandler (WebDriver webdr,Dictionary dict)throws InterruptedException{
+    private int windowEventhandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
         Dimension dimension;
         try{
 
@@ -152,7 +156,7 @@ public class Engine {
 
     }
 
-    public int sendKeysEventHandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
+    private int sendKeysEventHandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
         WebElement webElement;
         try{
             // By Xpath
@@ -186,7 +190,7 @@ public class Engine {
         return 0;
     }
 
-    public int clearEventhandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
+    private int clearEventhandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
         WebElement webElement;
         try{
             // By Xpath
@@ -221,7 +225,7 @@ public class Engine {
     }
 
 
-    public int clickEventHandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
+    private int clickEventHandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
         WebElement webElement;
         try{
             // By Xpath
@@ -258,7 +262,7 @@ public class Engine {
         return 0;
     }
 
-    public int compareEventHandler(WebDriver webdr,Dictionary dict) throws InterruptedException{
+    private int compareEventHandler(WebDriver webdr, Dictionary dict) throws InterruptedException{
         WebElement webElement;
         int returnFlag = 1;
         try{
@@ -335,6 +339,7 @@ public class Engine {
                 takeScreenshot(webdr);
             }
 
+
         }catch (Exception e){
             errorString = e.toString();
             returnFlag = 1;
@@ -344,7 +349,31 @@ public class Engine {
 
     }
 
-    public int timeEvenHandler(Dictionary dict)throws InterruptedException{
+    private int checkMinification(WebDriver webdr, Dictionary dict){
+        String pageSource = " ";
+        String returnMinfiResult = " ";
+        int returnFlag = 0;
+        int newLineCoutn = 0;
+
+        try {
+            pageSource = webdr.getPageSource();
+            for (String str : pageSource.split("\n|\r")) {
+                newLineCoutn++;
+
+            }
+            returnMinfiResult = "There are(is) "+ String.valueOf(newLineCoutn)+" new line/carriage return character found";
+            errorString = returnMinfiResult;
+
+        }catch (Exception e){
+            errorString = e.toString();
+            returnFlag = 1;
+
+        }
+
+        return returnFlag;
+    }
+
+    private int timeEvenHandler(Dictionary dict)throws InterruptedException{
         System.out.println("In TimeEvenHandler");
         String varTime = " ";
         if(dict.get("action").toString().equals("DelayBy")){
@@ -355,7 +384,7 @@ public class Engine {
 
     }
 
-    public void takeScreenshot(WebDriver webdr)throws InterruptedException {
+    private void takeScreenshot(WebDriver webdr)throws InterruptedException {
         Thread.sleep(4000);
         File src = ((TakesScreenshot) webdr).getScreenshotAs(OutputType.FILE);
         try{
@@ -365,14 +394,16 @@ public class Engine {
 
     }
 
-    public Node getXMLProcessNode(Document document,Row row,int returnValue, String errorString){
+   /* public Node getXMLProcessNode(Document document,Row row,int returnValue, String errorString){
         copyHashtable(row);
         Element prcsRow = document.createElement("TestCase");
         prcsRow.appendChild(getXMLPrcsElement(document,dict,returnValue,errorString));
-        return  prcsRow;
-    }
 
-    public Node getXMLPrcsElement(Document document,Dictionary dict,int returnValue,String errorString ){
+        return  prcsRow;
+    }*/
+
+    public Node getXMLProcessNode(Document document,Row row,int returnValue,String errorString ){
+        copyHashtable(row);
         String activeRow,result = "NORUN";
         activeRow =  dict.get("active").toString();
         if (activeRow.equals("A")){
@@ -382,25 +413,24 @@ public class Engine {
                 result = "FAIL";
 
         }
-
-        Element unitCase = document.createElement("UnitCase");
-        Element prcsID = document.createElement("PrcsID");
-        Element prcsDescr = document.createElement("PrcsDescr");
+        Element unitCase = document.createElement("TestUnit");
+        //Element prcsID = document.createElement("PrcsID");
+        //Element prcsDescr = document.createElement("PrcsDescr");
         Element seqNum = document.createElement("SeqNum");
         Element unitDescr = document.createElement("UnitDescr");
         Element unitActive = document.createElement("Active");
         Element unitResult = document.createElement("Result");
         Element errorStr = document.createElement("Exception");
-        prcsID.appendChild(document.createTextNode(dict.get("prcsID").toString()));
-        prcsDescr.appendChild(document.createTextNode(dict.get("prcsDescr").toString()));
+        //prcsID.appendChild(document.createTextNode(dict.get("prcsID").toString()));
+        //prcsDescr.appendChild(document.createTextNode(dict.get("prcsDescr").toString()));
         seqNum.appendChild(document.createTextNode(dict.get("prcsSeqNum").toString()));
         unitDescr.appendChild(document.createTextNode(dict.get("prcsSeqDescr").toString()));
         unitActive.appendChild(document.createTextNode(dict.get("active").toString()));
         unitResult.appendChild(document.createTextNode(result));
         errorStr.appendChild(document.createTextNode(errorString));
 
-        unitCase.appendChild(prcsID);
-        unitCase.appendChild(prcsDescr);
+        //unitCase.appendChild(prcsID);
+        //unitCase.appendChild(prcsDescr);
         unitCase.appendChild(seqNum);
         unitCase.appendChild(unitDescr);
         unitCase.appendChild(unitActive);

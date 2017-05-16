@@ -1,6 +1,6 @@
 package com.cerner.automation;
 
-import org.apache.poi.ss.usermodel.RichTextString;
+
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -9,7 +9,6 @@ import org.apache.poi.ss.usermodel.Workbook;
 import java.io.IOException;
 import java.util.Iterator;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 
 // For XML
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -26,16 +25,20 @@ import java.io.*;
  * Created by VC024129 on 5/6/2017.
  */
 public class AutomationEngine  {
+
     public static void main(String []args) throws InterruptedException, NullPointerException,IOException,ArrayIndexOutOfBoundsException, ParserConfigurationException{
         Engine engine = new Engine();
         int prcsReturnValue =0;
-
+        String prevTestCaseID = " ";
+        String currentTestCaseID = " ";
+        String currentTestCaseDescr = " ";
         // For XML//
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder documentBuilder = dbFactory.newDocumentBuilder();
         Document document = documentBuilder.newDocument();
         Element rootElement = document.createElement("Automation");
         document.appendChild(rootElement);
+        Element originalRoot = rootElement;
         // - END- XML
         //String excelFilePath = "C:\\Users\\VC024129\\Documents\\Vijay\\TestFrameWork\\TestParameterPPM4.xlsx";
         String excelFilePath = "C:\\Users\\VC024129\\Documents\\Vijay\\TestFrameWork\\TestParameterHomeTest.xlsx";
@@ -72,23 +75,44 @@ public class AutomationEngine  {
             Sheet sheet = excelWorkbook.getSheetAt(0);
             rowIterator = sheet.iterator();
             int i = 0;
-            Element testCase = document.createElement("TestCase");
-            rootElement.appendChild(testCase);
             while (rowIterator.hasNext()){
                 Row rowNext = rowIterator.next();
                 if (i==0) {
                     i++;
                     continue;
                 }
+                currentTestCaseID = rowNext.getCell(0).getRichStringCellValue().getString();
+                currentTestCaseDescr = rowNext.getCell(1).getRichStringCellValue().getString();
+                // Added - Vijay C Start
+                if(!currentTestCaseID.equals(prevTestCaseID)){
+                    System.out.println("---TestCaseID Change--> "+currentTestCaseID);
+                    Element testCase = document.createElement("TestCase");
+                    Element prcsID = document.createElement("PrcsID");
+                    Element prcsDescr = document.createElement("PrcsDescr");
+                    prcsID.appendChild(document.createTextNode(currentTestCaseID));
+                    prcsDescr.appendChild(document.createTextNode(currentTestCaseDescr));
+                    testCase.appendChild(prcsID);
+                    testCase.appendChild(prcsDescr);
+                    originalRoot.appendChild(testCase);
+                    rootElement = testCase;
+
+                }
+                // Added - Vijay C End
                 System.out.println("Line Status "+ rowNext.getCell(9).getRichStringCellValue().getString());
+
                 if (rowNext.getCell(9).getRichStringCellValue().getString().equals("A")){
+
                     prcsReturnValue = engine.processRequest(rowNext);
                 }
                 rootElement.appendChild(engine.getXMLProcessNode(document,rowNext,prcsReturnValue,engine.errorString));
+                //Resetting error string
+                engine.errorString = " ";
+
                 System.out.println("OnError : "+rowNext.getCell(10).getRichStringCellValue().getString()+" prcs : "+prcsReturnValue);
                 if(rowNext.getCell(11).getRichStringCellValue().getString().equals("Stop") && prcsReturnValue != 0){
                     break;
                 }
+                prevTestCaseID = currentTestCaseID;
             }
 
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
@@ -98,7 +122,7 @@ public class AutomationEngine  {
             transformer.transform(source,result);
             StreamResult consoleResult = new StreamResult(System.out);
             transformer.transform(source,consoleResult);
-            Thread.sleep(5000);
+            //Thread.sleep(5000);
             //Generate HTML report using XSLT
             System.out.println("--------");
             System.out.println("XML File : "+xmlFilePath);
@@ -108,13 +132,13 @@ public class AutomationEngine  {
             Transformer transformHTML = transformerFactoryHTML.newTransformer(new javax.xml.transform.stream.StreamSource(xslFilePath));
             transformHTML.transform(new javax.xml.transform.stream.StreamSource(xmlFilePath), new javax.xml.transform.stream.StreamResult(htmlFilePath));
             engine.webDriver.get(htmlFilePath);
-            Thread.sleep(5000);
+            //Thread.sleep(5000);
             engine.webDriver.close();
             excelWorkbook.close();
 
         }catch (NullPointerException e){e.printStackTrace();}
-        catch (Exception e){e.printStackTrace();}
-
+        catch (Exception e){e.printStackTrace();
+        }
 
     }
 }

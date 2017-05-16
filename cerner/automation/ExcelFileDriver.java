@@ -11,7 +11,7 @@ import java.io.IOException;
 /**
  * Created by VC024129 on 5/6/2017.
  */
-public class ExcelFileDriver {
+class ExcelFileDriver {
     public Workbook fileHandler;
     public String excelFilePath;
 

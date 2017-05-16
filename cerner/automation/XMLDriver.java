@@ -21,10 +21,10 @@ import org.w3c.dom.Node;
 import java.io.File;
 import java.util.concurrent.ExecutionException;
 
-public class XMLDriver  {
-    public DocumentBuilderFactory dbFactory;
-    public DocumentBuilder documentBuilder;
-    public Document doc;
+class XMLDriver  {
+    private DocumentBuilderFactory dbFactory;
+    private DocumentBuilder documentBuilder;
+    private Document doc;
 
 
     void  XMLDriver() throws ParserConfigurationException{

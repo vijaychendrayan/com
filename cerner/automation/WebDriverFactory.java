@@ -7,7 +7,7 @@ import org.openqa.selenium.firefox.FirefoxDriver;
 /**
  * Created by VC024129 on 5/6/2017.
  */
-public class WebDriverFactory {
+class WebDriverFactory {
 
     public WebDriver setWebDriver(String driverType, String prop, String path) {
         if (driverType.equals("CHROME")) {
