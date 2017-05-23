@@ -5,6 +5,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.poi.ss.usermodel.Row;
 import org.openqa.selenium.*;
 import org.openqa.selenium.Dimension;
+import org.openqa.selenium.JavascriptExecutor;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -13,8 +14,11 @@ import javax.xml.parsers.DocumentBuilder;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.Date;
 
 
 class Engine {
@@ -63,12 +67,13 @@ class Engine {
             System.out.println("In Web ***");
             if (dict.get("action").toString().equals("Navigate")) {
                 //webDriver.get(dict.get("match").toString());
-                prcsStatus = webNavigate(webDriver, dict.get("match").toString(), dict.get("screenShot").toString());
+                //prcsStatus = webNavigate(webDriver, dict.get("match").toString(), dict.get("screenShot").toString());
+                prcsStatus = webNavigate(webDriver, dict);
             }
             //Window Event
             if (colAction.equals("Window")) {
                 System.out.println("In Window even handler");
-                prcsStatus = windowEventhandler(webDriver, dict);
+                prcsStatus = windowEventHandler(webDriver, dict);
             }
             //Send Keys
             if (colAction.equals("SendKeys")) {
@@ -78,7 +83,7 @@ class Engine {
             //Clear
             if(colAction.equals("Clear")){
                 System.out.println("In Clear event");
-                prcsStatus = clearEventhandler(webDriver,dict);
+                prcsStatus = clearEventHandler(webDriver,dict);
             }
             //Click Event
             if (colAction.equals("Click")) {
@@ -94,10 +99,20 @@ class Engine {
                 System.out.println("In CheckMinificaiton");
                 prcsStatus = checkMinification(webDriver,dict);
             }
+            if(colAction.equals("CheckImageLoad")){
+                System.out.println("In CheckImageLoad");
+                prcsStatus = checkImageLoad(webDriver,dict);
+            }
         }
 
         if(colDriver.equals("Time")){
-            prcsStatus = timeEvenHandler(dict);
+            if(colAction.equals("DelayBy")){
+                prcsStatus = timeDelayBy(dict);
+            }
+            if(colAction.equals("PrintDateTime")){
+                prcsStatus = printDateTime(dict);
+            }
+
         }
         return prcsStatus;
     }
@@ -112,24 +127,32 @@ class Engine {
 
     }
 
-    private int webNavigate(WebDriver webdr, String url, String screenShotFlag) throws InterruptedException{
+    private int webNavigate(WebDriver webdr, Dictionary dict) throws InterruptedException{
+        int returnFlag = 0;
+        errorString = " ";
         try {
-            webdr.get(url);
+              webdr.get(dict.get("match").toString());
 
-            if (screenShotFlag.equals("Y")) {
+            if (dict.get("screenShot").toString().equals("Y")) {
                 takeScreenshot(webdr);
             }
+
+            /*if(!webdr.getTitle().toString().equals(dict.get("parameter").toString())){
+                errorString = "====> Page Load Error <==== ";
+                returnFlag = 1;
+
+            }*/
         }
         catch (Exception e){
             errorString = e.toString();
-            return 1;
+            returnFlag = 1;
 
         }
 
-        return 0;
+        return returnFlag;
     }
 
-    private int windowEventhandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
+    private int windowEventHandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
         Dimension dimension;
         try{
 
@@ -190,7 +213,7 @@ class Engine {
         return 0;
     }
 
-    private int clearEventhandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
+    private int clearEventHandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
         WebElement webElement;
         try{
             // By Xpath
@@ -373,8 +396,31 @@ class Engine {
         return returnFlag;
     }
 
-    private int timeEvenHandler(Dictionary dict)throws InterruptedException{
-        System.out.println("In TimeEvenHandler");
+    private int checkImageLoad(WebDriver webdr,Dictionary dict){
+        int returnFlag = 0;
+        WebElement webElement;
+        Boolean imageLodeStatus = Boolean.FALSE;
+        try{
+            // Xpath
+            if(dict.get("type").toString().equals("Xpath")){
+                webElement = webdr.findElement(By.xpath(dict.get("match").toString()));
+                imageLodeStatus = (Boolean) ((JavascriptExecutor)webdr).executeScript("return arguments[0].complete && typeof arguments[0].naturalWidth != \"undefined\" && arguments[0].naturalWidth > 0",webElement);
+            }
+            if(imageLodeStatus==Boolean.TRUE){
+                return 0;
+            }else{
+                errorString = "Image not loaded";
+                returnFlag = 1;
+            }
+        }catch (Exception e){
+            errorString = e.toString();
+            returnFlag = 1;
+        }
+        return returnFlag;
+    }
+
+    private int timeDelayBy(Dictionary dict)throws InterruptedException{
+        System.out.println("In DelayBy");
         String varTime = " ";
         if(dict.get("action").toString().equals("DelayBy")){
           varTime = dict.get("parameter").toString();
@@ -382,6 +428,14 @@ class Engine {
         }
         return 0;
 
+    }
+
+    private int printDateTime(Dictionary dict){
+        System.out.println("In Print Date and Time");
+        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        Date date = new Date();
+        errorString = dateFormat.format(date);
+        return 0;
     }
 
     private void takeScreenshot(WebDriver webdr)throws InterruptedException {
@@ -394,13 +448,7 @@ class Engine {
 
     }
 
-   /* public Node getXMLProcessNode(Document document,Row row,int returnValue, String errorString){
-        copyHashtable(row);
-        Element prcsRow = document.createElement("TestCase");
-        prcsRow.appendChild(getXMLPrcsElement(document,dict,returnValue,errorString));
 
-        return  prcsRow;
-    }*/
 
     public Node getXMLProcessNode(Document document,Row row,int returnValue,String errorString ){
         copyHashtable(row);
@@ -414,23 +462,17 @@ class Engine {
 
         }
         Element unitCase = document.createElement("TestUnit");
-        //Element prcsID = document.createElement("PrcsID");
-        //Element prcsDescr = document.createElement("PrcsDescr");
         Element seqNum = document.createElement("SeqNum");
         Element unitDescr = document.createElement("UnitDescr");
         Element unitActive = document.createElement("Active");
         Element unitResult = document.createElement("Result");
         Element errorStr = document.createElement("Exception");
-        //prcsID.appendChild(document.createTextNode(dict.get("prcsID").toString()));
-        //prcsDescr.appendChild(document.createTextNode(dict.get("prcsDescr").toString()));
         seqNum.appendChild(document.createTextNode(dict.get("prcsSeqNum").toString()));
         unitDescr.appendChild(document.createTextNode(dict.get("prcsSeqDescr").toString()));
         unitActive.appendChild(document.createTextNode(dict.get("active").toString()));
         unitResult.appendChild(document.createTextNode(result));
         errorStr.appendChild(document.createTextNode(errorString));
 
-        //unitCase.appendChild(prcsID);
-        //unitCase.appendChild(prcsDescr);
         unitCase.appendChild(seqNum);
         unitCase.appendChild(unitDescr);
         unitCase.appendChild(unitActive);
