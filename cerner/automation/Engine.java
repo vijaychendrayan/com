@@ -2,7 +2,6 @@ package com.cerner.automation;
 
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.poi.ss.usermodel.Row;
 import org.openqa.selenium.*;
 import org.openqa.selenium.Dimension;
@@ -10,6 +9,7 @@ import org.openqa.selenium.JavascriptExecutor;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 
 import java.io.File;
@@ -22,21 +22,20 @@ import java.util.Date;
 
 
 class Engine {
-    public int processRequestCont;
-    public String processDescr;
-    public String processUnitDescr;
-    public String processNum;
-    public String processUnitNum;
+    //public int processRequestCont;
+    //public String processDescr;
+    //public String processUnitDescr;
+    //public String processNum;
+    //public String processUnitNum;
     private Dictionary dict = new Hashtable();
     private String [] colKey = new String[]{"prcsID","prcsDescr","prcsSeqNum","prcsSeqDescr","driver","action","type","match","parameter","active","screenShot","onError"};
-    public String colValue;
+    //public String colValue;
     public String errorString = "NA";
     private String colDriver;
     private String colAction;
     private String screenShotPath;
     private int prcsStatus;
     WebDriver webDriver;
-
 
     public  Engine ()
     {
@@ -51,61 +50,66 @@ class Engine {
     }
 
     public void setScreenShotPath(String path){
-        System.out.println("--Setting up ScreenShot File path---");
+        //System.out.println("--Setting up ScreenShot File path---");
         screenShotPath = path;
     }
 
     public int processRequest(Row row) throws InterruptedException{
         copyHashTable(row);
         prcsStatus = 1;
-        System.out.println(dict.get("prcsID")+" "+dict.get("prcsSeqNum"));
+        //System.out.println(dict.get("prcsID")+" "+dict.get("prcsSeqNum"));
         colDriver = (String) dict.get("driver");
         colAction = (String) dict.get("action");
+        String logString = "======>"+dict.get("prcsSeqNum")+" : "+dict.get("prcsSeqDescr")+" : "+dict.get("driver");
+        logString = logString +" : "+dict.get("action")+dict.get("type")+" : "+dict.get("match");
+        logString = logString +" : "+dict.get("parameter")+" : "+dict.get("active");
+        logString = logString +" : "+dict.get("screenShot")+" : "+dict.get("onError")+"<=====";
+
         //Navigate
-        System.out.println("Driver : "+colDriver+" colAction : "+colAction);
+        //System.out.println("Driver : "+colDriver+" colAction : "+colAction);
         if(colDriver.equals("Web")) {
-            System.out.println("In Web ***");
+            //System.out.println("In Web ***");
             if (dict.get("action").toString().equals("Navigate")) {
                 //webDriver.get(dict.get("match").toString());
                 //prcsStatus = webNavigate(webDriver, dict.get("match").toString(), dict.get("screenShot").toString());
-                prcsStatus = webNavigate(webDriver, dict);
+                prcsStatus = webNavigateHandler(webDriver, dict);
             }
             //Window Event
             if (colAction.equals("Window")) {
-                System.out.println("In Window even handler");
+                //System.out.println("In Window even handler");
                 prcsStatus = windowEventHandler(webDriver, dict);
             }
             //Send Keys
             if (colAction.equals("SendKeys")) {
-                System.out.println("In Send keys handler");
+                //System.out.println("In Send keys handler");
                 prcsStatus = sendKeysEventHandler(webDriver, dict);
             }
             //Clear
             if(colAction.equals("Clear")){
-                System.out.println("In Clear event");
+                //System.out.println("In Clear event");
                 prcsStatus = clearEventHandler(webDriver,dict);
             }
             //Click Event
             if (colAction.equals("Click")) {
-                System.out.println("In Click handler");
+                //System.out.println("In Click handler");
                 prcsStatus = clickEventHandler(webDriver, dict);
             }
             //Compare Event
             if (colAction.equals("Compare") && !dict.get("type").toString().equals("PageTitle")) {
-                System.out.println("In Compare handler");
+                //System.out.println("In Compare handler");
                 prcsStatus = compareEventHandler(webDriver, dict);
             }
             //Compare Page Title
             if (colAction.equals("Compare") && dict.get("type").toString().equals("PageTitle") ) {
-                System.out.println("In Compare Page Title");
+                //System.out.println("In Compare Page Title");
                 prcsStatus = comparePageTitle(webDriver, dict);
             }
             if(colAction.equals("CheckMinificaiton")){
-                System.out.println("In CheckMinificaiton");
+                //System.out.println("In CheckMinificaiton");
                 prcsStatus = checkMinification(webDriver,dict);
             }
             if(colAction.equals("CheckImageLoad")){
-                System.out.println("In CheckImageLoad");
+                //System.out.println("In CheckImageLoad");
                 prcsStatus = checkImageLoad(webDriver,dict);
             }
         }
@@ -116,6 +120,11 @@ class Engine {
             if(colAction.equals("PrintDateTime")){
                 prcsStatus = printDateTime(dict);
             }
+        }
+        System.out.println(logString+"===>Return : "+prcsStatus);
+        if(prcsStatus==1){
+
+            webDriver.navigate().refresh();
         }
         return prcsStatus;
     }
@@ -128,11 +137,16 @@ class Engine {
         }
     }
 
-    private int webNavigate(WebDriver webdr, Dictionary dict) throws InterruptedException{
+    private int webNavigateHandler(WebDriver webdr, Dictionary dict) throws InterruptedException{
         int returnFlag = 0;
         errorString = " ";
         try {
-              webdr.get(dict.get("match").toString());
+                if(dict.get("type").toString().equals("Get")){
+                    webdr.get(dict.get("match").toString());
+                }
+            if(dict.get("type").toString().equals("Refresh")){
+                webdr.navigate().refresh();
+            }
 
             if (dict.get("screenShot").toString().equals("Y")) {
                 takeScreenshot(webdr);
@@ -233,6 +247,9 @@ class Engine {
                     errorString = "====>Title NOT Matched<===";
                     returnFlag = 1;
                 }
+                if(dict.get("screenShot").toString().equals("Y")){
+                    takeScreenshot(webdr);
+                }
             }
         }catch (Exception e){
             errorString = e.toString();
@@ -254,8 +271,6 @@ class Engine {
                 errorString = "====>String NOT Matched<===";
                 returnFlag = 1;
             }
-
-
             // Take ScreenShot
             if(dict.get("screenShot").toString().equals("Y")){
                 takeScreenshot(webdr);
@@ -272,7 +287,6 @@ class Engine {
         String returnMinfiResult = " ";
         int returnFlag = 0;
         int newLineCoutn = 0;
-
         try {
             pageSource = webdr.getPageSource();
             for (String str : pageSource.split("\n|\r")) {
@@ -281,13 +295,10 @@ class Engine {
             }
             returnMinfiResult = "There are(is) "+ String.valueOf(newLineCoutn)+" new line/carriage return character found";
             errorString = returnMinfiResult;
-
         }catch (Exception e){
             errorString = e.toString();
             returnFlag = 1;
-
         }
-
         return returnFlag;
     }
 
@@ -332,17 +343,18 @@ class Engine {
         return webElement;
     }
     private int timeDelayBy(Dictionary dict)throws InterruptedException{
-        System.out.println("In DelayBy");
+        //System.out.println("In DelayBy");
         String varTime;
         if(dict.get("action").toString().equals("DelayBy")){
           varTime = dict.get("parameter").toString();
           Thread.sleep(Long.valueOf(varTime));
+
         }
         return 0;
     }
 
     private int printDateTime(Dictionary dict){
-        System.out.println("In Print Date and Time");
+        //System.out.println("In Print Date and Time");
         DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         Date date = new Date();
         errorString = dateFormat.format(date);
@@ -388,6 +400,55 @@ class Engine {
         unitCase.appendChild(unitResult);
         unitCase.appendChild(errorStr);
         return unitCase;
+    }
+
+    public Node generateSummary(Document document){
+
+        String summaryTestCaseID = " ";
+        String summaryTestCaseDescr = " ";
+        String summaryTestResult = " ";
+        Element summaryElement = document.createElement("Summary");
+        NodeList nodeList = document.getElementsByTagName("TestCase");
+        System.out.println("===>Generating Test Execution Summary<===");
+        for(int temp=0;temp < nodeList.getLength(); temp++){
+            Element summaryTSTElement = document.createElement("SummaryTestCase");
+            Node node = nodeList.item(temp);
+            Element summaryElementTest=  (Element) node;
+            summaryTestCaseID = summaryElementTest.getElementsByTagName("PrcsID").item(0).getTextContent();
+            summaryTestCaseDescr = summaryElementTest.getElementsByTagName("PrcsDescr").item(0).getTextContent();
+            //System.out.println(node.getNodeName());
+            if( node.getNodeType() == Node.ELEMENT_NODE){
+                Element summaryElementTU = (Element) node;
+                NodeList summaryNodeList = summaryElementTU.getElementsByTagName("TestUnit");
+                for(int count=0; count< summaryNodeList.getLength();count++){
+                    Node summaryNode = summaryNodeList.item(count);
+                    if(summaryNode.getNodeType() == Node.ELEMENT_NODE){
+                        Element resultElement = (Element) summaryNode;
+                        summaryTestResult = resultElement.getElementsByTagName("Result").item(0).getTextContent();
+                        if (summaryTestResult.equals("FAIL")|| summaryTestResult.equals("NORUN") ){
+                            break;
+                        }
+                    }
+                }
+            }
+            //System.out.println("TestCaseID : "+summaryTestCaseID+" TestCaseDescr : "+summaryTestCaseDescr+" TestResult : "+summaryTestResult);
+            Element sumSeqNum = document.createElement("TestCaseSeqNum");
+            Element sumTestCaseID = document.createElement("TestCaseID");
+            Element sumTestCaseDescr = document.createElement("TestCaseDescr");
+            Element sumResult = document.createElement("Result");
+            sumSeqNum.appendChild(document.createTextNode(( String.valueOf(temp+1))));
+            sumTestCaseID.appendChild(document.createTextNode(summaryTestCaseID));
+            sumTestCaseDescr.appendChild(document.createTextNode(summaryTestCaseDescr));
+            sumResult.appendChild(document.createTextNode(summaryTestResult));
+            summaryTSTElement.appendChild(sumSeqNum);
+            summaryTSTElement.appendChild(sumTestCaseID);
+            summaryTSTElement.appendChild(sumTestCaseDescr);
+            summaryTSTElement.appendChild(sumResult);
+            summaryElement.appendChild(summaryTSTElement);
+
+        }
+
+        return summaryElement;
     }
 }
 
