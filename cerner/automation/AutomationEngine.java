@@ -7,7 +7,10 @@ import org.apache.poi.ss.usermodel.Workbook;
 
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Iterator;
+import java.util.Date;
 import org.w3c.dom.Element;
 
 // For XML
@@ -40,7 +43,7 @@ public class AutomationEngine  {
         String currentTestCaseID = " ";
         String currentTestCaseDescr = " ";
         String testCaseStatus = "PASS";
-
+        DateFormat autoDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         // For XML//
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder documentBuilder = dbFactory.newDocumentBuilder();
@@ -51,7 +54,8 @@ public class AutomationEngine  {
         // - END- XML
         //String excelFilePath = "C:\\Users\\VC024129\\Documents\\Vijay\\TestFrameWork\\TestParameterPPM4.xlsx";
         //String excelFilePath = "C:\\Users\\VC024129\\Documents\\Vijay\\TestFrameWork\\TestParameterHomeTest.xlsx";
-        String excelFilePath = "C:\\Users\\VC024129\\Documents\\Vijay\\TestFrameWork\\CernerDotCom.xlsx";
+        //String excelFilePath = "C:\\Users\\VC024129\\Documents\\Vijay\\TestFrameWork\\CernerDotCom.xlsx";
+        String excelFilePath = "C:\\Users\\VC024129\\Documents\\Vijay\\TestFrameWork\\CernerDotComDemo.xlsx";
         String driverType,driverPath,driverProp,screenShotFilePath,xmlFilePath,xslFilePath,htmlFilePath;
         // Setting up Web Driver
         try{
@@ -94,8 +98,8 @@ public class AutomationEngine  {
                 }
                 currentTestCaseID = rowNext.getCell(0).getRichStringCellValue().getString();
                 currentTestCaseDescr = rowNext.getCell(1).getRichStringCellValue().getString();
-
                 // Added - Vijay C Start
+
                 if(!currentTestCaseID.equals(prevTestCaseID)){
                     System.out.println("===>TestCaseID Change<=== "+currentTestCaseID);
                     totalTestCase += 1;
@@ -103,12 +107,19 @@ public class AutomationEngine  {
                     Element prcsID = document.createElement("PrcsID");
                     Element prcsDescr = document.createElement("PrcsDescr");
                     Element tcStatus = document.createElement("Status");
+                    Element TimeTaken = document.createElement("TimeTaken");
                     prcsID.appendChild(document.createTextNode(currentTestCaseID));
                     prcsDescr.appendChild(document.createTextNode(currentTestCaseDescr));
-                    //System.out.println("XML Node Gen : "+ testCaseStatus);
+                    //Start DTTM //
+                    Element startDTTM = document.createElement("StartDTTM");
+                    Date startDate = new Date();
+                    startDTTM.appendChild(document.createTextNode(autoDateFormat.format(startDate)));
 
+                    //System.out.println("XML Node Gen : "+ testCaseStatus);
                     testCase.appendChild(prcsID);
                     testCase.appendChild(prcsDescr);
+                    testCase.appendChild(startDTTM);
+                    testCase.appendChild(TimeTaken);
                     originalRoot.appendChild(testCase);
                     rootElement = testCase;
 
@@ -116,26 +127,26 @@ public class AutomationEngine  {
                 }
                 // Added - Vijay C End
                 //System.out.println("Line Status "+ rowNext.getCell(9).getRichStringCellValue().getString());
-
+                // Start Time
+                long startTime = System.currentTimeMillis();
                 if (rowNext.getCell(9).getRichStringCellValue().getString().equals("A")){
 
                     prcsReturnValue = engine.processRequest(rowNext);
-                    // Retry 2 more times.
-                    if(prcsReturnValue==1) {
-                        Thread.sleep(2000);
-                        prcsReturnValue = engine.processRequest(rowNext);
-                    }
-                    if(prcsReturnValue==1) {
-                        Thread.sleep(2000);
-                        prcsReturnValue = engine.processRequest(rowNext);
-                    }
+
                     //System.out.println("Prcs Return Value : "+ prcsReturnValue);
                     if(prcsReturnValue > 0 && testCaseStatus.equals("PASS")){
                         testCaseStatus = "FAIL";
 
                     }
                 }
-                rootElement.appendChild(engine.getXMLProcessNode(document,rowNext,prcsReturnValue,engine.errorString));
+                // End Time
+                long endTime = System.currentTimeMillis();
+                // Time Taken
+                long execTime = endTime - startTime;
+                execTime = execTime/1000;
+                System.out.println("Execution Time : "+execTime);
+
+                rootElement.appendChild(engine.getXMLProcessNode(document,rowNext,prcsReturnValue,execTime,engine.errorString));
                 //Resetting error string
                 engine.errorString = " ";
 
@@ -148,7 +159,6 @@ public class AutomationEngine  {
             //Generate Summary for test execution -- Start   --
             originalRoot.appendChild(engine.generateSummary(document));
             //Generate Summary for test execution -- End   --
-
             TransformerFactory transformerFactory = TransformerFactory.newInstance();
             Transformer transformer = transformerFactory.newTransformer();
             DOMSource source = new DOMSource(document);
@@ -173,10 +183,8 @@ public class AutomationEngine  {
             //System.out.println("Total Test Cases : "+ totalTestCase);
             //System.out.println("Test Case Passed : "+ passTestCaseCount);
             //System.out.println("Test Case Failed : "+ failTestCaseCount);
-
         }catch (NullPointerException e){e.printStackTrace();}
         catch (Exception e){e.printStackTrace();
         }
-
     }
 }

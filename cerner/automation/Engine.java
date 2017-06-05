@@ -371,7 +371,7 @@ class Engine {
 
     }
 
-    public Node getXMLProcessNode(Document document,Row row,int returnValue,String errorString ){
+    public Node getXMLProcessNode(Document document,Row row,int returnValue,long execTime,String errorString ){
         copyHashTable(row);
         String activeRow,result = "NORUN";
         activeRow =  dict.get("active").toString();
@@ -388,17 +388,20 @@ class Engine {
         Element unitActive = document.createElement("Active");
         Element unitResult = document.createElement("Result");
         Element errorStr = document.createElement("Exception");
+        Element executionTime = document.createElement("ExecutionTime");
         seqNum.appendChild(document.createTextNode(dict.get("prcsSeqNum").toString()));
         unitDescr.appendChild(document.createTextNode(dict.get("prcsSeqDescr").toString()));
         unitActive.appendChild(document.createTextNode(dict.get("active").toString()));
         unitResult.appendChild(document.createTextNode(result));
         errorStr.appendChild(document.createTextNode(errorString));
+        executionTime.appendChild(document.createTextNode((String.valueOf(execTime))));
 
         unitCase.appendChild(seqNum);
         unitCase.appendChild(unitDescr);
         unitCase.appendChild(unitActive);
         unitCase.appendChild(unitResult);
         unitCase.appendChild(errorStr);
+        unitCase.appendChild(executionTime);
         return unitCase;
     }
 
@@ -407,15 +410,28 @@ class Engine {
         String summaryTestCaseID = " ";
         String summaryTestCaseDescr = " ";
         String summaryTestResult = " ";
+        String summaryDTTM = " ";
+        String summaryExecTimeStr = " ";
+        long summaryExecTimeLong = 0;
+        long totalExecTime = 0;
+        int totalTestCase = 0;
+        int passTestCase = 0;
+        int noRunTestCase = 0;
+        int failTestCase = 0;
         Element summaryElement = document.createElement("Summary");
         NodeList nodeList = document.getElementsByTagName("TestCase");
         System.out.println("===>Generating Test Execution Summary<===");
+        //Reset Execution Time var
+
         for(int temp=0;temp < nodeList.getLength(); temp++){
+            summaryExecTimeLong = 0;
             Element summaryTSTElement = document.createElement("SummaryTestCase");
             Node node = nodeList.item(temp);
             Element summaryElementTest=  (Element) node;
             summaryTestCaseID = summaryElementTest.getElementsByTagName("PrcsID").item(0).getTextContent();
             summaryTestCaseDescr = summaryElementTest.getElementsByTagName("PrcsDescr").item(0).getTextContent();
+            summaryDTTM = summaryElementTest.getElementsByTagName("StartDTTM").item(0).getTextContent();
+
             //System.out.println(node.getNodeName());
             if( node.getNodeType() == Node.ELEMENT_NODE){
                 Element summaryElementTU = (Element) node;
@@ -431,23 +447,64 @@ class Engine {
                     }
                 }
             }
+            // Sum up total execution time for Test Case
+            if( node.getNodeType() == Node.ELEMENT_NODE){
+                Element summaryElementTU = (Element) node;
+                NodeList summaryNodeList = summaryElementTU.getElementsByTagName("TestUnit");
+                for(int count=0; count< summaryNodeList.getLength();count++){
+                    Node summaryNode = summaryNodeList.item(count);
+                    if(summaryNode.getNodeType() == Node.ELEMENT_NODE){
+                        Element resultElement = (Element) summaryNode;
+                        summaryExecTimeStr = resultElement.getElementsByTagName("ExecutionTime").item(0).getTextContent();
+                        summaryExecTimeLong = summaryExecTimeLong + Long.parseLong(summaryExecTimeStr);
+                    }
+                }
+            }
+            totalExecTime += summaryExecTimeLong;
+
             //System.out.println("TestCaseID : "+summaryTestCaseID+" TestCaseDescr : "+summaryTestCaseDescr+" TestResult : "+summaryTestResult);
             Element sumSeqNum = document.createElement("TestCaseSeqNum");
             Element sumTestCaseID = document.createElement("TestCaseID");
             Element sumTestCaseDescr = document.createElement("TestCaseDescr");
             Element sumResult = document.createElement("Result");
+            Element sumDTTM = document.createElement("StartDTTM");
+            Element sumExecTime = document.createElement("ExecutionTime");
             sumSeqNum.appendChild(document.createTextNode(( String.valueOf(temp+1))));
             sumTestCaseID.appendChild(document.createTextNode(summaryTestCaseID));
             sumTestCaseDescr.appendChild(document.createTextNode(summaryTestCaseDescr));
             sumResult.appendChild(document.createTextNode(summaryTestResult));
+            sumDTTM.appendChild(document.createTextNode(summaryDTTM));
+            sumExecTime.appendChild(document.createTextNode(String.valueOf(summaryExecTimeLong)));
             summaryTSTElement.appendChild(sumSeqNum);
             summaryTSTElement.appendChild(sumTestCaseID);
             summaryTSTElement.appendChild(sumTestCaseDescr);
             summaryTSTElement.appendChild(sumResult);
+            summaryTSTElement.appendChild(sumDTTM);
+            summaryTSTElement.appendChild(sumExecTime);
             summaryElement.appendChild(summaryTSTElement);
+            //totalTestCase = temp + 1;
+            if (summaryTestResult.equals("PASS")) passTestCase += 1;
+            if(summaryTestResult.equals("FAIL")) failTestCase +=1;
+            if(summaryTestResult.equals("NORUN")) noRunTestCase +=1;
 
         }
-
+        totalTestCase = passTestCase + failTestCase + noRunTestCase;
+        totalExecTime = totalExecTime/60;
+        Element sumTotalTestCase = document.createElement("TotalTestCases");
+        Element sumPassedTestCase = document.createElement("PassedTestCases");
+        Element sumFailedTestCase = document.createElement("FailedTestCases");
+        Element sumNoRunTestCase = document.createElement("NoRunTestCases");
+        Element sumTotalExecTime = document.createElement("TotalExecutionTime");
+        sumTotalTestCase.appendChild(document.createTextNode(String.valueOf(totalTestCase)));
+        sumPassedTestCase.appendChild(document.createTextNode(String.valueOf(passTestCase)));
+        sumFailedTestCase.appendChild(document.createTextNode(String.valueOf(failTestCase)));
+        sumNoRunTestCase.appendChild(document.createTextNode(String.valueOf(noRunTestCase)));
+        sumTotalExecTime.appendChild(document.createTextNode(String.valueOf(totalExecTime)));
+        summaryElement.appendChild(sumTotalTestCase);
+        summaryElement.appendChild(sumPassedTestCase);
+        summaryElement.appendChild(sumFailedTestCase);
+        summaryElement.appendChild(sumNoRunTestCase);
+        summaryElement.appendChild(sumTotalExecTime);
         return summaryElement;
     }
 }
