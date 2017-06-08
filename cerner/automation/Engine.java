@@ -15,10 +15,11 @@ import org.w3c.dom.NodeList;
 import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.Dictionary;
-import java.util.Hashtable;
-import java.util.Date;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 class Engine {
@@ -285,10 +286,33 @@ class Engine {
     private int checkMinification(WebDriver webdr, Dictionary dict){
         String pageSource = " ";
         String returnMinfiResult = " ";
+        String currentURL = " ";
+        List resourceURL = new ArrayList();
         int returnFlag = 0;
         int newLineCoutn = 0;
+        currentURL = webdr.getCurrentUrl();
+        System.out.print("Current URl : "+currentURL);
+
+
+        // Read pageSource and find .css and .js files belong to Cerner.
+        // load each item to list.
+        // Get source for each list item and check for minification.
+        // append the result to errorString.
         try {
             pageSource = webdr.getPageSource();
+            System.out.println("Before getResourceURL");
+            resourceURL = getResourceURL(pageSource);
+            System.out.println("After getResourceURL");
+            System.out.println("Resource URL "+ resourceURL);
+            Iterator iterator = resourceURL.iterator();
+            while (iterator.hasNext()){
+                String assetURL = iterator.next().toString();
+                System.out.println("Asset URL :"+ assetURL);
+
+            }
+
+
+
             for (String str : pageSource.split("\n|\r")) {
                 newLineCoutn++;
 
@@ -300,6 +324,25 @@ class Engine {
             returnFlag = 1;
         }
         return returnFlag;
+    }
+    private List getResourceURL(String pageSource){
+        System.out.println("Inside getResourceURL");
+        List resultResourceURL = new ArrayList();
+        String getCss ="href(\\s+=|=)(\\s+\"/|\"/).*\\.css";
+        String getJs ="src(\\s+=|=)(\\s+\"/|\"/).*\\.js";
+
+        Pattern css = Pattern.compile(getCss);
+        Pattern js =  Pattern.compile(getJs);
+        Matcher matchCss = css.matcher(pageSource);
+        Matcher matchJs = js.matcher(pageSource);
+        while (matchCss.find()){
+            resultResourceURL.add(matchCss.group());
+        }
+        while (matchJs.find()){
+            resultResourceURL.add(matchJs.group());
+        }
+        System.out.println("before return resultResourceURL "+resultResourceURL);
+        return resultResourceURL;
     }
 
     private int checkImageLoad(WebDriver webdr,Dictionary dict){
@@ -412,8 +455,9 @@ class Engine {
         String summaryTestResult = " ";
         String summaryDTTM = " ";
         String summaryExecTimeStr = " ";
+
         long summaryExecTimeLong = 0;
-        long totalExecTime = 0;
+        double totalExecTime = 0;
         int totalTestCase = 0;
         int passTestCase = 0;
         int noRunTestCase = 0;
@@ -489,7 +533,17 @@ class Engine {
 
         }
         totalTestCase = passTestCase + failTestCase + noRunTestCase;
-        totalExecTime = totalExecTime/60;
+        //totalExecTime =  (totalExecTime%3600)/60;
+        int totalExecTimeWholeNum = (int)(totalExecTime % 3600)/60;
+        double totalExecTimeFraction = (totalExecTime % 60)/100;
+        //System.out.println("totalExecTime : "+totalExecTime);
+        //System.out.println("totalExecTimeWholeNum : "+ totalExecTimeWholeNum);
+        //System.out.println("totalExecTimeFraction : "+ totalExecTimeFraction);
+        //totalExecTimeFraction = totalExecTimeFraction * 60;
+        totalExecTime = totalExecTimeWholeNum + totalExecTimeFraction;
+        System.out.println("==>totalExecTime : "+totalExecTime);
+        DecimalFormat decimalFormat = new DecimalFormat("####.##");
+
         Element sumTotalTestCase = document.createElement("TotalTestCases");
         Element sumPassedTestCase = document.createElement("PassedTestCases");
         Element sumFailedTestCase = document.createElement("FailedTestCases");
@@ -499,7 +553,7 @@ class Engine {
         sumPassedTestCase.appendChild(document.createTextNode(String.valueOf(passTestCase)));
         sumFailedTestCase.appendChild(document.createTextNode(String.valueOf(failTestCase)));
         sumNoRunTestCase.appendChild(document.createTextNode(String.valueOf(noRunTestCase)));
-        sumTotalExecTime.appendChild(document.createTextNode(String.valueOf(totalExecTime)));
+        sumTotalExecTime.appendChild(document.createTextNode(decimalFormat.format(totalExecTime)));
         summaryElement.appendChild(sumTotalTestCase);
         summaryElement.appendChild(sumPassedTestCase);
         summaryElement.appendChild(sumFailedTestCase);
