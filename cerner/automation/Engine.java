@@ -14,6 +14,9 @@ import org.w3c.dom.NodeList;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.security.PublicKey;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -32,6 +35,8 @@ class Engine {
     private String [] colKey = new String[]{"prcsID","prcsDescr","prcsSeqNum","prcsSeqDescr","driver","action","type","match","parameter","active","screenShot","onError"};
     //public String colValue;
     public String errorString = "NA";
+    public String errorStringLong = "NA";
+    public String screenShotName = " ";
     private String colDriver;
     private String colAction;
     private String screenShotPath;
@@ -55,7 +60,7 @@ class Engine {
         screenShotPath = path;
     }
 
-    public int processRequest(Row row) throws InterruptedException{
+    public int processRequest(Row row) throws InterruptedException, MalformedURLException{
         copyHashTable(row);
         prcsStatus = 1;
         //System.out.println(dict.get("prcsID")+" "+dict.get("prcsSeqNum"));
@@ -141,6 +146,7 @@ class Engine {
     private int webNavigateHandler(WebDriver webdr, Dictionary dict) throws InterruptedException{
         int returnFlag = 0;
         errorString = " ";
+        errorStringLong =" ";
         try {
                 if(dict.get("type").toString().equals("Get")){
                     webdr.get(dict.get("match").toString());
@@ -155,7 +161,8 @@ class Engine {
 
         }
         catch (Exception e){
-            errorString = e.toString();
+            errorString = "Web Navigation Error";
+            errorStringLong = e.toString();
             returnFlag = 1;
         }
         return returnFlag;
@@ -180,7 +187,8 @@ class Engine {
                 takeScreenshot(webdr);
             }
         }catch (Exception e){
-            errorString = e.toString();
+            errorString = "Window Max/Min Error";
+            errorStringLong = e.toString();
             return 1;
         }
         return 0;
@@ -196,7 +204,8 @@ class Engine {
                 takeScreenshot(webdr);
             }
         }catch (Exception e){
-            errorString = e.toString();
+            errorString = "Element not found exception";
+            errorStringLong = e.toString();
             return 1;
         }
         return 0;
@@ -212,7 +221,8 @@ class Engine {
                 takeScreenshot(webdr);
             }
         }catch (Exception e){
-            errorString = e.toString();
+            errorString = "Element not found exception";
+            errorStringLong = e.toString();
             return 1;
         }
         return 0;
@@ -228,7 +238,8 @@ class Engine {
                 takeScreenshot(webdr);
             }
         }catch (Exception e){
-            errorString = e.toString();
+            errorString = "Element not found exception";
+            errorStringLong = e.toString();
             return 1;
         }
         return 0;
@@ -246,6 +257,7 @@ class Engine {
                 } else {
                     System.out.println("====>Title NOT Matched<===");
                     errorString = "====>Title NOT Matched<===";
+                    errorStringLong =  "====>Title NOT Matched<===";
                     returnFlag = 1;
                 }
                 if(dict.get("screenShot").toString().equals("Y")){
@@ -253,7 +265,8 @@ class Engine {
                 }
             }
         }catch (Exception e){
-            errorString = e.toString();
+            errorString = "Element not found exception";
+            errorStringLong = e.toString();
             returnFlag = 1;
         }
         return  returnFlag;
@@ -269,7 +282,8 @@ class Engine {
             }
             else {
                 System.out.println("====>String NOT Matched<===");
-                errorString = "====>String NOT Matched<===";
+                errorString = "====>Compare string NOT Matched<===";
+                errorStringLong =  "====>Compare string NOT Matched<===";
                 returnFlag = 1;
             }
             // Take ScreenShot
@@ -277,22 +291,27 @@ class Engine {
                 takeScreenshot(webdr);
             }
         }catch (Exception e){
-            errorString = e.toString();
+            errorString = "Element not found exception";
+            errorStringLong = e.toString();
             returnFlag = 1;
         }
         return  returnFlag;
     }
 
-    private int checkMinification(WebDriver webdr, Dictionary dict){
+    private int checkMinification(WebDriver webdr, Dictionary dict) throws MalformedURLException{
         String pageSource = " ";
         String returnMinfiResult = " ";
         String currentURL = " ";
+        String assetURLForMsg = " ";
         List resourceURL = new ArrayList();
         int returnFlag = 0;
         int newLineCoutn = 0;
         currentURL = webdr.getCurrentUrl();
+        String originalUrl = currentURL;
         System.out.print("Current URl : "+currentURL);
-
+        currentURL = getDomainURL(currentURL);
+        System.out.println("Current Domain URL :"+currentURL);
+        //currentURL = "https://"+currentURL;
 
         // Read pageSource and find .css and .js files belong to Cerner.
         // load each item to list.
@@ -307,44 +326,82 @@ class Engine {
             Iterator iterator = resourceURL.iterator();
             while (iterator.hasNext()){
                 String assetURL = iterator.next().toString();
+
+                if(assetURL.contains(".com")){
+                    System.out.println("Contains .com");
+                    continue;
+                }
+                assetURLForMsg = assetURL;
+                assetURL = currentURL+assetURL;
                 System.out.println("Asset URL :"+ assetURL);
+                System.out.println("Navigat to Asset URL");
+                webdr.get(assetURL);
+                pageSource = webdr.getPageSource();
+                for (String str : pageSource.split("\n|\r")) {
+                    newLineCoutn++;
+                }
+                returnMinfiResult = returnMinfiResult+assetURLForMsg +": "+"There are(is) "+ String.valueOf(newLineCoutn)+" CRLF >>>";
 
             }
 
+            //returnMinfiResult = "There are(is) "+ String.valueOf(newLineCoutn)+" new line/carriage return character found";
 
-
-            for (String str : pageSource.split("\n|\r")) {
-                newLineCoutn++;
-
-            }
-            returnMinfiResult = "There are(is) "+ String.valueOf(newLineCoutn)+" new line/carriage return character found";
-            errorString = returnMinfiResult;
         }catch (Exception e){
-            errorString = e.toString();
+            errorString = "Minification issue";
+            errorStringLong = e.toString();
             returnFlag = 1;
         }
+        webdr.get(originalUrl);
+        pageSource = webdr.getPageSource();
+        for (String str : pageSource.split("\n|\r")) {
+            newLineCoutn++;
+        }
+        returnMinfiResult = returnMinfiResult+assetURLForMsg +": "+"There are(is) "+ String.valueOf(newLineCoutn)+" new line/carriage return character found >>";
+        errorString = "Minification Result";
+        errorStringLong = returnMinfiResult;
         return returnFlag;
     }
     private List getResourceURL(String pageSource){
         System.out.println("Inside getResourceURL");
         List resultResourceURL = new ArrayList();
-        String getCss ="href(\\s+=|=)(\\s+\"/|\"/).*\\.css";
-        String getJs ="src(\\s+=|=)(\\s+\"/|\"/).*\\.js";
-
+        String getCss ="href(\\s+=|=)(\\s+\"/|\"/).*?\\.css";
+        String getJs ="src(\\s+=|=)(\\s+\"/|\"/).*?\\.js";
+        String getQuotes = ".*=\"";
         Pattern css = Pattern.compile(getCss);
         Pattern js =  Pattern.compile(getJs);
+        Pattern quotes = Pattern.compile(getQuotes);
         Matcher matchCss = css.matcher(pageSource);
         Matcher matchJs = js.matcher(pageSource);
+
         while (matchCss.find()){
-            resultResourceURL.add(matchCss.group());
+            Matcher matchQuote = quotes.matcher(matchCss.group());
+            resultResourceURL.add(matchQuote.replaceFirst(""));
+
+            //resultResourceURL.add(matchCss.group());
         }
         while (matchJs.find()){
-            resultResourceURL.add(matchJs.group());
+            Matcher matchQuote = quotes.matcher(matchJs.group());
+            resultResourceURL.add(matchQuote.replaceFirst(""));
+            //resultResourceURL.add(matchJs.group());
         }
         System.out.println("before return resultResourceURL "+resultResourceURL);
         return resultResourceURL;
     }
 
+    private String getDomainURL(String currentURL) throws MalformedURLException{
+        URL domainURL=null;
+        String hostUrl=" ";
+        try{
+            domainURL = new URL(currentURL);
+
+
+        }catch (MalformedURLException e){
+            System.out.println(e.getMessage());
+        }
+        hostUrl =  domainURL.getProtocol()+"://"+domainURL.getHost();
+        System.out.println("hostUrl : "+hostUrl);
+        return hostUrl;
+    }
     private int checkImageLoad(WebDriver webdr,Dictionary dict){
         int returnFlag = 0;
         WebElement webElement;
@@ -356,10 +413,12 @@ class Engine {
                 return 0;
             }else{
                 errorString = "Image not loaded";
+                errorStringLong = "Image not loaded";
                 returnFlag = 1;
             }
         }catch (Exception e){
-            errorString = e.toString();
+            errorString = "Element not found exception";
+            errorStringLong = e.toString();
             returnFlag = 1;
         }
         return returnFlag;
@@ -401,6 +460,7 @@ class Engine {
         DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         Date date = new Date();
         errorString = dateFormat.format(date);
+        errorStringLong = errorString;
         return 0;
     }
 
@@ -408,15 +468,20 @@ class Engine {
         Thread.sleep(4000);
         File src = ((TakesScreenshot) webdr).getScreenshotAs(OutputType.FILE);
         try{
-            String screenShotFielName = screenShotPath+"\\"+dict.get("prcsID").toString()+"_"+ dict.get("prcsSeqNum")+"_screenShot.png";
-            FileUtils.copyFile(src,new File(screenShotFielName));
-        }catch (IOException e){}
+            screenShotName = dict.get("prcsID").toString()+"_"+ dict.get("prcsSeqNum")+"_screenShot.png";
+            String screenShotFileName = screenShotPath+"\\"+screenShotName;
+            FileUtils.copyFile(src,new File(screenShotFileName));
+        }catch (IOException e){
+            errorString ="Unable to take ScreenShot";
+            errorStringLong = e.toString();
+        }
 
     }
 
-    public Node getXMLProcessNode(Document document,Row row,int returnValue,long execTime,String errorString ){
+    public Node getXMLProcessNode(Document document,Row row,int returnValue,long execTime,String errorString,String errorStringLong,String screenShotName ){
         copyHashTable(row);
         String activeRow,result = "NORUN";
+        String shortErrorMsg = " ";
         activeRow =  dict.get("active").toString();
         if (activeRow.equals("A")){
             if(returnValue==0)
@@ -425,18 +490,23 @@ class Engine {
                 result = "FAIL";
 
         }
+
         Element unitCase = document.createElement("TestUnit");
         Element seqNum = document.createElement("SeqNum");
         Element unitDescr = document.createElement("UnitDescr");
         Element unitActive = document.createElement("Active");
         Element unitResult = document.createElement("Result");
         Element errorStr = document.createElement("Exception");
+        Element errorMsgStr = document.createElement("ExceptionMsg");
+        Element screenShotNameElement = document.createElement("ScreenShotImageName");
         Element executionTime = document.createElement("ExecutionTime");
         seqNum.appendChild(document.createTextNode(dict.get("prcsSeqNum").toString()));
         unitDescr.appendChild(document.createTextNode(dict.get("prcsSeqDescr").toString()));
         unitActive.appendChild(document.createTextNode(dict.get("active").toString()));
         unitResult.appendChild(document.createTextNode(result));
         errorStr.appendChild(document.createTextNode(errorString));
+        errorMsgStr.appendChild(document.createTextNode(errorStringLong));
+        screenShotNameElement.appendChild(document.createTextNode(screenShotName));
         executionTime.appendChild(document.createTextNode((String.valueOf(execTime))));
 
         unitCase.appendChild(seqNum);
@@ -444,6 +514,8 @@ class Engine {
         unitCase.appendChild(unitActive);
         unitCase.appendChild(unitResult);
         unitCase.appendChild(errorStr);
+        unitCase.appendChild(errorMsgStr);
+        unitCase.appendChild(screenShotNameElement);
         unitCase.appendChild(executionTime);
         return unitCase;
     }

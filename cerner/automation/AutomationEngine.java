@@ -36,14 +36,15 @@ public class AutomationEngine  {
         Engine engine = new Engine();
         int prcsReturnValue =0;
         int totalTestCase = 0;
-        int passTestCaseCount  = 0;
-        int failTestCaseCount  = 0;
-        int norunTestCaseCount = 0;
         String prevTestCaseID = " ";
         String currentTestCaseID = " ";
         String currentTestCaseDescr = " ";
         String testCaseStatus = "PASS";
         DateFormat autoDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        DateFormat htmlFileDateFormat = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
+        Date fileDate = new Date();
+        String autoFileName = htmlFileDateFormat.format(fileDate).toString();
+        System.out.println("File Name : "+autoFileName);
         // For XML//
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder documentBuilder = dbFactory.newDocumentBuilder();
@@ -53,10 +54,19 @@ public class AutomationEngine  {
         Element originalRoot = rootElement;
         // - END- XML
         //String excelFilePath = "C:\\Users\\VC024129\\Documents\\Vijay\\TestFrameWork\\TestParameterPPM4.xlsx";
-        String excelFilePath = "C:\\Users\\VC024129\\Documents\\Vijay\\TestFrameWork\\TestParameterHomeTest.xlsx";
+        //String excelFilePath = "C:\\Users\\VC024129\\Documents\\Vijay\\TestFrameWork\\TestParameterHomeTest.xlsx";
         //String excelFilePath = "C:\\Users\\VC024129\\Documents\\Vijay\\TestFrameWork\\CernerDotCom.xlsx";
         //String excelFilePath = "C:\\Users\\VC024129\\Documents\\Vijay\\TestFrameWork\\CernerDotComDemo.xlsx";
-        String driverType,driverPath,driverProp,screenShotFilePath,xmlFilePath,xslFilePath,htmlFilePath;
+        String excelFilePath = args[0];
+
+        String driverType,driverPath,driverProp,screenShotFilePath,xmlFilePath,xslFilePath,htmlFilePath,htmlFileName;
+
+        System.out.println("Argument Length : "+args.length);
+        if(args.length > 0){
+            for(int kk=0;kk<args.length;kk++){
+                System.out.println("Argument "+kk+" : "+args[kk]);
+            }
+        }
         // Setting up Web Driver
         try{
             ExcelFileDriver excelFileDriver = new ExcelFileDriver();
@@ -79,7 +89,10 @@ public class AutomationEngine  {
             row = rowIterator.next();
             xslFilePath = row.getCell(0).getRichStringCellValue().getString();
             row = rowIterator.next();
-            htmlFilePath = row.getCell(0).getRichStringCellValue().getString();;
+            //Result HTML File path / name
+            htmlFilePath = row.getCell(0).getRichStringCellValue().getString();
+            htmlFileName = "Automation_"+autoFileName+".html";
+            htmlFilePath = htmlFilePath+"/"+htmlFileName;
             //Get Screenshot file path
             excelSheetTestCase = excelWorkbook.getSheetAt(2);
             rowIterator = excelSheetTestCase.iterator();
@@ -123,7 +136,6 @@ public class AutomationEngine  {
                     originalRoot.appendChild(testCase);
                     rootElement = testCase;
 
-
                 }
                 // Added - Vijay C End
                 //System.out.println("Line Status "+ rowNext.getCell(9).getRichStringCellValue().getString());
@@ -144,11 +156,13 @@ public class AutomationEngine  {
                 // Time Taken
                 long execTime = endTime - startTime;
                 execTime = execTime/1000;
-                System.out.println("Execution Time : "+execTime);
+                //System.out.println("Execution Time : "+execTime);
 
-                rootElement.appendChild(engine.getXMLProcessNode(document,rowNext,prcsReturnValue,execTime,engine.errorString));
+                rootElement.appendChild(engine.getXMLProcessNode(document,rowNext,prcsReturnValue,execTime,engine.errorString,engine.errorStringLong,engine.screenShotName));
                 //Resetting error string
                 engine.errorString = " ";
+                engine.errorStringLong =" ";
+                engine.screenShotName = " ";
 
                 //System.out.println("OnError : "+rowNext.getCell(10).getRichStringCellValue().getString()+" prcs : "+prcsReturnValue);
                 if(rowNext.getCell(11).getRichStringCellValue().getString().equals("Stop") && prcsReturnValue != 0){
