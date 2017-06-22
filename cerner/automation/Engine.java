@@ -14,6 +14,7 @@ import org.w3c.dom.NodeList;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.PublicKey;
@@ -48,7 +49,7 @@ class Engine {
 
     }
 
-    public void setWebDriver(String driverType,String driverProp,String driverPath){
+    public void setWebDriver(String driverType,String driverProp,String driverPath) throws MalformedURLException{
         System.out.println("---Setting up Web driver---");
         System.out.println(driverType+" "+driverPath+" "+driverProp);
         WebDriverFactory webDriverFactory = new WebDriverFactory();
@@ -66,6 +67,8 @@ class Engine {
         //System.out.println(dict.get("prcsID")+" "+dict.get("prcsSeqNum"));
         colDriver = (String) dict.get("driver");
         colAction = (String) dict.get("action");
+        String driverProp = null;
+        String driverPath = null;
         String logString = "======>"+dict.get("prcsSeqNum")+" : "+dict.get("prcsSeqDescr")+" : "+dict.get("driver");
         logString = logString +" : "+dict.get("action")+dict.get("type")+" : "+dict.get("match");
         logString = logString +" : "+dict.get("parameter")+" : "+dict.get("active");
@@ -73,7 +76,57 @@ class Engine {
 
         //Navigate
         //System.out.println("Driver : "+colDriver+" colAction : "+colAction);
-        if(colDriver.equals("Web")) {
+        if(colDriver.equals("Web") || colDriver.equals("Mobile")) {
+            //Setting up WebDriver
+            if (dict.get("action").toString().equals("SetDriver")) {
+                /*ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+                InputStream inputStream = classLoader.getResourceAsStream("WebDriver.config");
+                if(inputStream == null){
+                    errorString = "WebDriver.config file not found";
+                    errorStringLong = "WebDriver.config file not found";
+                    return 1;
+                }
+                while (inputStream)*/
+                //Chrome
+                if(dict.get("type").toString().equals("Chrome")){
+                    driverProp = "webdriver.chrome.driver";
+                    driverPath = "C://Temp//chromedriver.exe";
+                    setWebDriver("CHROME",driverProp,driverPath);
+                }
+                //FireFox
+                if(dict.get("type").toString().equals("FireFox")){
+                    driverProp = "webdriver.gecko.driver";
+                    driverPath = "C://Temp//geckodriver.exe";
+                    setWebDriver("FIREFOX",driverProp,driverPath);
+                }
+                //IE
+                //Safari
+                // AndroidChrome
+                if(dict.get("type").toString().equals("AndroidChrome")){
+                    driverProp = "NA";
+                    driverPath = "NA";
+                    try {
+                        setWebDriver("ANDROIDCHROME", driverProp, driverPath);
+                    }catch (Exception e){
+                        errorStringLong = e.getStackTrace().toString();
+                        errorString = "Unable to initialize Mobile Chrome driver";
+                        prcsStatus = 1;
+                        return prcsStatus;
+                    }
+                }
+                prcsStatus = 0;
+            }
+            if (dict.get("action").toString().equals("CloseDriver")) {
+                System.out.println("In Close Driver");
+                try {
+                    webDriver.close();
+                    prcsStatus = 0;
+                }catch (Exception e){
+                    errorString = "Unable to close webdriver";
+                    errorStringLong = e.getStackTrace().toString();
+                }
+
+            }
             //System.out.println("In Web ***");
             if (dict.get("action").toString().equals("Navigate")) {
                 //webDriver.get(dict.get("match").toString());
@@ -119,6 +172,7 @@ class Engine {
                 prcsStatus = checkImageLoad(webDriver,dict);
             }
         }
+
         if(colDriver.equals("Time")){
             if(colAction.equals("DelayBy")){
                 prcsStatus = timeDelayBy(dict);
@@ -147,8 +201,11 @@ class Engine {
         int returnFlag = 0;
         errorString = " ";
         errorStringLong =" ";
+        System.out.println("InWebNavigate");
+
         try {
                 if(dict.get("type").toString().equals("Get")){
+                    //webDriver.get(dict.get("match").toString());
                     webdr.get(dict.get("match").toString());
                 }
             if(dict.get("type").toString().equals("Refresh")){
@@ -466,9 +523,12 @@ class Engine {
 
     private void takeScreenshot(WebDriver webdr)throws InterruptedException {
         Thread.sleep(4000);
+        DateFormat fileDateFormat = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
+        Date fileDate = new Date();
+        String autoFileName = fileDateFormat.format(fileDate).toString();
         File src = ((TakesScreenshot) webdr).getScreenshotAs(OutputType.FILE);
         try{
-            screenShotName = dict.get("prcsID").toString()+"_"+ dict.get("prcsSeqNum")+"_screenShot.png";
+            screenShotName = dict.get("prcsID").toString()+"_"+ dict.get("prcsSeqNum")+"_screenShot_"+autoFileName+".png";
             String screenShotFileName = screenShotPath+"\\"+screenShotName;
             FileUtils.copyFile(src,new File(screenShotFileName));
         }catch (IOException e){

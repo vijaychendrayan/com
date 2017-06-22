@@ -80,7 +80,7 @@ public class AutomationEngine  {
             driverPath = row.getCell(1).getRichStringCellValue().getString();
             driverProp = row.getCell(2).getRichStringCellValue().getString();
             //System.out.println(driverType+" "+driverPath+" "+driverProp);
-            engine.setWebDriver(driverType,driverProp,driverPath);
+            //engine.setWebDriver(driverType,driverProp,driverPath);
             //Get XML File path
             excelSheetTestCase = excelWorkbook.getSheetAt(3);
             rowIterator = excelSheetTestCase.iterator();
@@ -189,9 +189,9 @@ public class AutomationEngine  {
             TransformerFactory transformerFactoryHTML = TransformerFactory.newInstance();
             Transformer transformHTML = transformerFactoryHTML.newTransformer(new javax.xml.transform.stream.StreamSource(xslFilePath));
             transformHTML.transform(new javax.xml.transform.stream.StreamSource(xmlFilePath), new javax.xml.transform.stream.StreamResult(htmlFilePath));
-            engine.webDriver.get(htmlFilePath);
+            //engine.webDriver.get(htmlFilePath);
             //Thread.sleep(5000);
-            engine.webDriver.close();
+            //engine.webDriver.close();
             excelWorkbook.close();
             System.out.println("---- Summary ---");
             //System.out.println("Total Test Cases : "+ totalTestCase);
