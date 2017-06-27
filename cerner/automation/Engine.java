@@ -90,13 +90,13 @@ class Engine {
                 //Chrome
                 if(dict.get("type").toString().equals("Chrome")){
                     driverProp = "webdriver.chrome.driver";
-                    driverPath = "C://Temp//chromedriver.exe";
+                    driverPath = "C:\\tomcat9\\webapps\\driver\\chromedriver.exe";
                     setWebDriver("CHROME",driverProp,driverPath);
                 }
                 //FireFox
                 if(dict.get("type").toString().equals("FireFox")){
                     driverProp = "webdriver.gecko.driver";
-                    driverPath = "C://Temp//geckodriver.exe";
+                    driverPath = "C:\\tomcat9\\webapps\\driver\\geckodriver.exe";
                     setWebDriver("FIREFOX",driverProp,driverPath);
                 }
                 //IE

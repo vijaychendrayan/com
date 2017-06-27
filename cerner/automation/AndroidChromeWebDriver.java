@@ -14,7 +14,7 @@ public class AndroidChromeWebDriver {
 
     public WebDriver setWebDriver(String prop, String path)throws MalformedURLException {
         DesiredCapabilities capabilities = new DesiredCapabilities();
-        capabilities.setCapability("deviceName", "TestMobileDevice");
+        capabilities.setCapability("deviceName", "Nexus6PAPI25");
         capabilities.setCapability("platformName", "Android");
         capabilities.setCapability("platformVersion", "8.0");
         capabilities.setCapability("browserName", "Chrome");
