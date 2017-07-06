@@ -13,10 +13,12 @@ import org.w3c.dom.NodeList;
 
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.HttpURLConnection;
 import java.security.PublicKey;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
@@ -64,6 +66,7 @@ class Engine {
     public int processRequest(Row row) throws InterruptedException, MalformedURLException{
         copyHashTable(row);
         prcsStatus = 1;
+
         //System.out.println(dict.get("prcsID")+" "+dict.get("prcsSeqNum"));
         colDriver = (String) dict.get("driver");
         colAction = (String) dict.get("action");
@@ -79,24 +82,28 @@ class Engine {
         if(colDriver.equals("Web") || colDriver.equals("Mobile")) {
             //Setting up WebDriver
             if (dict.get("action").toString().equals("SetDriver")) {
-                /*ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-                InputStream inputStream = classLoader.getResourceAsStream("WebDriver.config");
-                if(inputStream == null){
-                    errorString = "WebDriver.config file not found";
-                    errorStringLong = "WebDriver.config file not found";
-                    return 1;
+                ClassLoader classLoader = getClass().getClassLoader();
+                Properties prop = new Properties();
+                FileInputStream input = null;
+                try{
+                    input = new FileInputStream(classLoader.getResource("DriverConfig/WebDriverConfig.properties").getFile());
+                    prop.load(input);
+                }catch (Exception e){
+                    System.out.println("Missing WebDriver Property file");
+                    e.printStackTrace();
                 }
-                while (inputStream)*/
+
                 //Chrome
                 if(dict.get("type").toString().equals("Chrome")){
                     driverProp = "webdriver.chrome.driver";
-                    driverPath = "C:\\tomcat9\\webapps\\driver\\chromedriver.exe";
+                    driverPath = prop.get("CHROME").toString();
+                    System.out.println(driverPath);
                     setWebDriver("CHROME",driverProp,driverPath);
                 }
                 //FireFox
                 if(dict.get("type").toString().equals("FireFox")){
                     driverProp = "webdriver.gecko.driver";
-                    driverPath = "C:\\tomcat9\\webapps\\driver\\geckodriver.exe";
+                    driverPath = prop.get("FIREFOX").toString();
                     setWebDriver("FIREFOX",driverProp,driverPath);
                 }
                 //IE
@@ -171,6 +178,11 @@ class Engine {
                 //System.out.println("In CheckImageLoad");
                 prcsStatus = checkImageLoad(webDriver,dict);
             }
+            if(colAction.equals("CheckPageImageLoad")){
+                //System.out.println("In CheckImageLoad");
+                prcsStatus = checkPageImages(webDriver);
+            }
+
         }
 
         if(colDriver.equals("Time")){
@@ -206,7 +218,7 @@ class Engine {
         try {
                 if(dict.get("type").toString().equals("Get")){
                     //webDriver.get(dict.get("match").toString());
-                    webdr.get(dict.get("match").toString());
+                    webdr.get(dict.get("parameter").toString());
                 }
             if(dict.get("type").toString().equals("Refresh")){
                 webdr.navigate().refresh();
@@ -444,7 +456,36 @@ class Engine {
         System.out.println("before return resultResourceURL "+resultResourceURL);
         return resultResourceURL;
     }
+    private List getImageResourceURL(String pageSource){
+        System.out.println("Inside getImageResourceURL");
+        List resultImgResourceURL = new ArrayList();
+        //String getImgUrl ="img.*src(\\s+=|=)(\\s+\"/|\"/|\").*?\\\"";
+        String getImgUrl ="img(.*?)src=(.*?)\"(.*?)\"";
+        String getSrc = "src.*=\".*?\"";
+        String getQuote = "\".*?\"";
+        Pattern imgUrlpattern = Pattern.compile(getImgUrl);
+        Pattern imgSrc = Pattern.compile(getSrc);
+        Pattern imgQuote = Pattern.compile(getQuote);
+        Matcher imgMatch = imgUrlpattern.matcher(pageSource);
+        while(imgMatch.find()){
+            System.out.println("Inside Img page match");
+            Matcher imgSrcMatch = imgSrc.matcher(imgMatch.group());
+            System.out.println("Matched img : "+imgMatch.group().toString());
+            System.out.println("Matched img scr : "+imgSrcMatch.find());
+            System.out.println("Matched img scr group: "+imgSrcMatch.group());
+            Matcher imgQuoteMatch = imgQuote.matcher(imgSrcMatch.group());
+            System.out.println("Matched img scr quote -Find:"+ imgQuoteMatch.find());
+            System.out.println("Match quote : "+ imgQuoteMatch.group());
+            //System.out.println("Replace First : "+ imgQuoteMatch.group().replaceAll("\"",""));
+            System.out.println("-----------------");
 
+            resultImgResourceURL.add(imgQuoteMatch.group().replaceAll("\"",""));
+
+        }
+
+        return  resultImgResourceURL;
+
+    }
     private String getDomainURL(String currentURL) throws MalformedURLException{
         URL domainURL=null;
         String hostUrl=" ";
@@ -480,6 +521,74 @@ class Engine {
         }
         return returnFlag;
     }
+
+    private int checkPageImages(WebDriver webdr) throws MalformedURLException{
+        String pageSource = " ";
+        String returnMinfiResult = " ";
+        String currentURL = " ";
+        String assetURLForMsg = " ";
+        List imgResourceURL = new ArrayList();
+        URL  urlImage = null;
+        HttpURLConnection httpImge = null;
+        int returnFlag = 0;
+        currentURL = webdr.getCurrentUrl();
+        String originalUrl = currentURL;
+        System.out.print("Current URl : "+currentURL);
+        currentURL = getDomainURL(currentURL);
+        System.out.println("Current Domain URL :"+currentURL);
+        try {
+            pageSource = webdr.getPageSource();
+            //System.out.println(pageSource);
+            System.out.println("Before getResourceURL");
+            imgResourceURL = getImageResourceURL(pageSource);
+            Iterator imgIterator = imgResourceURL.iterator();
+            while(imgIterator.hasNext()){
+                String imgAssetURL = imgIterator.next().toString();
+                System.out.println("Substring 0,2"+imgAssetURL.substring(0,2));
+                if(imgAssetURL.substring(0,2).equals("//")){
+                    imgAssetURL = imgAssetURL.replaceFirst("//","http://");
+                    System.out.println("after stripping "+imgAssetURL);
+
+                }
+                //System.out.println("Image Asset : "+imgAssetURL);
+                if(imgAssetURL.contains(".com")){
+                    System.out.println("Contains .com");
+                   //continue;
+                   // webdr.get(imgAssetURL);
+                    //System.out.println("-----------------");
+                    //System.out.println(webdr.getPageSource());
+                    //System.out.println("-----------------");
+                }
+                else {
+                    imgAssetURL = currentURL + imgAssetURL;
+                    //System.out.println("Asset URL :" + imgAssetURL);
+                    //System.out.println("Navigat to Asset URL");
+                    //webdr.get(imgAssetURL);
+                    //System.out.println("-----------------");
+                    //System.out.println(webdr.getPageSource());
+                    //System.out.println("-----------------");
+                }
+
+                urlImage = new URL(imgAssetURL);
+                httpImge = (HttpURLConnection)urlImage.openConnection();
+                int imgStagus = httpImge.getResponseCode();
+                System.out.println("Image Status for URL "+imgAssetURL+" Status is "+imgStagus);
+                if(imgStagus != 200){
+                    errorString = "Image Load issue";
+                    errorStringLong = errorStringLong + "Image Status for URL "+imgAssetURL+" Status is "+"NOT LOADED"+"---";
+                    returnFlag = 1;
+                }
+            }
+
+
+        }catch (Exception e){
+            errorString = "Image Load issue";
+            errorStringLong = e.toString();
+            returnFlag = 1;
+        }
+        webdr.get(originalUrl);
+        return returnFlag;
+    }
     private WebElement getWebElement(WebDriver webdr,String searchBy,String match){
         WebElement webElement = null;
         if(searchBy.equals("Xpath")){
@@ -501,6 +610,8 @@ class Engine {
 
         return webElement;
     }
+
+
     private int timeDelayBy(Dictionary dict)throws InterruptedException{
         //System.out.println("In DelayBy");
         String varTime;
