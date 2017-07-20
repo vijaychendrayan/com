@@ -14,6 +14,7 @@ class WebDriverFactory  {
     public WebDriver setWebDriver(String driverType, String prop, String path) throws MalformedURLException {
         if (driverType.equals("CHROME")) {
             ChromeWebDriver chromeWebDriver = new ChromeWebDriver();
+
             return chromeWebDriver.setWebDriver(prop, path);
         }
         if (driverType.equals("FIREFOX")) {

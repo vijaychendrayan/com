@@ -86,7 +86,11 @@ class Engine {
                 Properties prop = new Properties();
                 FileInputStream input = null;
                 try{
-                    input = new FileInputStream(classLoader.getResource("DriverConfig/WebDriverConfig.properties").getFile());
+                    //input = new FileInputStream(classLoader.getResource("DriverConfig/WebDriverConfig.properties").getFile());
+                    input = new FileInputStream("WebDriverConfig.properties");
+                    //TempFix
+                    //input = new FileInputStream("C:\\Users\\VC024129\\IdeaProjects\\Automation\\src\\Web.properties");
+                    //input = new FileInputStream(new File("src\\main\\resources\\DriverConfig\\WebDriverConfig.properties").getAbsolutePath());
                     prop.load(input);
                 }catch (Exception e){
                     System.out.println("Missing WebDriver Property file");
@@ -182,7 +186,9 @@ class Engine {
                 //System.out.println("In CheckImageLoad");
                 prcsStatus = checkPageImages(webDriver);
             }
-
+            if(colAction.equals("Crawl")){
+                prcsStatus = crawlLinks(webDriver);
+            }
         }
 
         if(colDriver.equals("Time")){
@@ -524,9 +530,9 @@ class Engine {
 
     private int checkPageImages(WebDriver webdr) throws MalformedURLException{
         String pageSource = " ";
-        String returnMinfiResult = " ";
+        //String returnMinfiResult = " ";
         String currentURL = " ";
-        String assetURLForMsg = " ";
+        //String assetURLForMsg = " ";
         List imgResourceURL = new ArrayList();
         URL  urlImage = null;
         HttpURLConnection httpImge = null;
@@ -609,6 +615,95 @@ class Engine {
         }
 
         return webElement;
+    }
+
+    private int crawlLinks(WebDriver webdr) throws MalformedURLException{
+        String pageSource = " ";
+        String currentURL = " ";
+        List crawlURLList = new ArrayList();
+        URL crawlURL = null;
+        HttpURLConnection httpCrawlink = null;
+        int returnFlag = 0;
+        currentURL = webdr.getCurrentUrl();
+        String originalUrl = currentURL;
+        currentURL = getDomainURL(currentURL);
+
+        try{
+            pageSource = webdr.getPageSource();
+            crawlURLList = getCrawlURLList(pageSource);
+            Iterator crawlURLIterator = crawlURLList.iterator();
+            while (crawlURLIterator.hasNext()){
+                String crawlLink = crawlURLIterator.next().toString();
+                System.out.println(crawlLink);
+                if(crawlLink.contains(".com")|crawlLink.contains("http:")|crawlLink.contains("https:")){
+
+                }else {
+                    crawlLink = currentURL+crawlLink;
+                }
+                crawlURL = new URL(crawlLink);
+                webdr.get(crawlLink);
+                httpCrawlink = (HttpURLConnection)crawlURL.openConnection();
+                int URLResponse = httpCrawlink.getResponseCode();
+                System.out.println("Status Code is : "+URLResponse);
+                if(URLResponse != 200){
+                    errorString = "URL Crawl Error";
+                    errorStringLong = errorStringLong + "URL "+crawlLink+" Status is "+"NOT LOADED"+"---";
+                    returnFlag = 1;
+                }
+
+            }
+        }catch (Exception e){
+            System.out.println(e.getStackTrace().toString());
+            errorString = "Error" ;
+            errorStringLong = e.getStackTrace().toString();
+            e.printStackTrace();
+            returnFlag = 1;
+        }
+        webdr.get(originalUrl);
+        return returnFlag;
+    }
+
+    private List getCrawlURLList(String pageSource){
+        List resultCrawlURL = new ArrayList();
+        Set<String> tempSet = new HashSet<String>();
+        String getAnchor = "<a(.*?)href=(.*?)\"(.*?)\"";
+        String getHref = "href=(.*?)\"(.*?)\"";
+        String getLink = "\"(.*?)\"";
+        Pattern crawlURLAnchor = Pattern.compile(getAnchor);
+        Pattern crawlURLHref = Pattern.compile(getHref);
+        Pattern crawlURLLink = Pattern.compile(getLink);
+        //System.out.println(pageSource);
+        Matcher matchAnchor = crawlURLAnchor.matcher(pageSource);
+        try{
+            while (matchAnchor.find() ){
+                //System.out.println("Anchor : "+matchAnchor.group());
+                Matcher matchHref = crawlURLHref.matcher(matchAnchor.group());
+                matchHref.find();
+                //System.out.println("Href :"+matchHref.group());
+                Matcher matchURLLink = crawlURLLink.matcher(matchHref.group());
+                matchURLLink.find();
+                resultCrawlURL.add(matchURLLink.group().replaceAll("\"",""));
+            }
+            // Remove duplicates from the List
+            tempSet.addAll(resultCrawlURL);
+            resultCrawlURL.clear();
+            resultCrawlURL.addAll(tempSet);
+            // Remove invalid items
+            Iterator iterator = resultCrawlURL.iterator();
+            while (iterator.hasNext()){
+                String tmpStr = iterator.next().toString();
+                if(tmpStr.equals("#")| tmpStr.equals("#footer")|tmpStr.equals("#menu")|tmpStr.equals("#header")|tmpStr.equals("#main-cont")|tmpStr.equals("/")){
+                    iterator.remove();
+                }
+            }
+
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+
+        return resultCrawlURL;
     }
 
 

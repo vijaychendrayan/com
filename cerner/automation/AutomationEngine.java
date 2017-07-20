@@ -26,6 +26,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import java.io.*;
+import java.util.Properties;
 
 /**
  * Created by VC024129 on 5/6/2017.
@@ -72,17 +73,33 @@ public class AutomationEngine  {
             ExcelFileDriver excelFileDriver = new ExcelFileDriver();
             excelFileDriver.excelFilePath = excelFilePath;
             Workbook excelWorkbook = excelFileDriver.open();
+            Sheet excelSheetTestCase = null;
+            Iterator<Row> rowIterator = null;
+            Row row = null;
             //Get Browser Configuration from "Configuration" worksheet
-            Sheet excelSheetTestCase = excelWorkbook.getSheetAt(1);
-            Iterator<Row> rowIterator = excelSheetTestCase.iterator();
-            Row row = rowIterator.next();
-            driverType = row.getCell(0).getRichStringCellValue().getString();
-            driverPath = row.getCell(1).getRichStringCellValue().getString();
-            driverProp = row.getCell(2).getRichStringCellValue().getString();
+            //Sheet excelSheetTestCase = excelWorkbook.getSheetAt(1);
+            //Iterator<Row> rowIterator = excelSheetTestCase.iterator();
+            //Row row = rowIterator.next();
+            //driverType = row.getCell(0).getRichStringCellValue().getString();
+            //driverPath = row.getCell(1).getRichStringCellValue().getString();
+            //driverProp = row.getCell(2).getRichStringCellValue().getString();
             //System.out.println(driverType+" "+driverPath+" "+driverProp);
             //engine.setWebDriver(driverType,driverProp,driverPath);
             //Get XML File path
-            excelSheetTestCase = excelWorkbook.getSheetAt(3);
+            //----- Start-----
+            Properties prop = new Properties();
+            FileInputStream input = new FileInputStream("config.properties");
+            prop.load(input);
+            xmlFilePath = prop.getProperty("XMLFILE");
+            xslFilePath = prop.getProperty("XSLTFILE");
+            htmlFilePath = prop.getProperty("HTMLFILE");
+            screenShotFilePath = prop.getProperty("SCREENSHOTFILE");
+            input.close();
+
+
+
+            //----- End ------
+            /*excelSheetTestCase = excelWorkbook.getSheetAt(3);
             rowIterator = excelSheetTestCase.iterator();
             row = rowIterator.next();
             xmlFilePath = row.getCell(0).getRichStringCellValue().getString();
@@ -90,14 +107,14 @@ public class AutomationEngine  {
             xslFilePath = row.getCell(0).getRichStringCellValue().getString();
             row = rowIterator.next();
             //Result HTML File path / name
-            htmlFilePath = row.getCell(0).getRichStringCellValue().getString();
+            htmlFilePath = row.getCell(0).getRichStringCellValue().getString(); */
             htmlFileName = "Automation_"+autoFileName+".html";
             htmlFilePath = htmlFilePath+"/"+htmlFileName;
             //Get Screenshot file path
-            excelSheetTestCase = excelWorkbook.getSheetAt(2);
+            /* excelSheetTestCase = excelWorkbook.getSheetAt(2);
             rowIterator = excelSheetTestCase.iterator();
             row = rowIterator.next();
-            screenShotFilePath = row.getCell(0).getRichStringCellValue().getString();
+            screenShotFilePath = row.getCell(0).getRichStringCellValue().getString();*/
             engine.setScreenShotPath(screenShotFilePath);
             Sheet sheet = excelWorkbook.getSheetAt(0);
             rowIterator = sheet.iterator();
@@ -199,6 +216,7 @@ public class AutomationEngine  {
             //System.out.println("Test Case Failed : "+ failTestCaseCount);
         }catch (NullPointerException e){e.printStackTrace();}
         catch (Exception e){e.printStackTrace();
+
         }
     }
 }
