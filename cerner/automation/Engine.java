@@ -12,10 +12,16 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.HttpURLConnection;
@@ -63,7 +69,7 @@ class Engine {
         screenShotPath = path;
     }
 
-    public int processRequest(Row row) throws InterruptedException, MalformedURLException{
+    public int processRequest(Row row) throws InterruptedException, MalformedURLException, ParserConfigurationException,TransformerException,IOException{
         copyHashTable(row);
         prcsStatus = 1;
 
@@ -404,7 +410,7 @@ class Engine {
 
                 if(assetURL.contains(".com")){
                     System.out.println("Contains .com");
-                    continue;
+                    //continue;
                 }
                 assetURLForMsg = assetURL;
                 assetURL = currentURL+assetURL;
@@ -417,6 +423,10 @@ class Engine {
                 }
                 returnMinfiResult = returnMinfiResult+assetURLForMsg +": "+"There are(is) "+ String.valueOf(newLineCoutn)+" CRLF >>>";
 
+                if(newLineCoutn > 2){
+
+                    returnFlag = 1;
+                }
             }
 
             //returnMinfiResult = "There are(is) "+ String.valueOf(newLineCoutn)+" new line/carriage return character found";
@@ -617,16 +627,37 @@ class Engine {
         return webElement;
     }
 
-    private int crawlLinks(WebDriver webdr) throws MalformedURLException{
-        String pageSource = " ";
-        String currentURL = " ";
+    private int crawlLinks(WebDriver webdr) throws MalformedURLException,ParserConfigurationException, TransformerException, IOException {
+        String pageSource;
+        String currentURL;
+        int URLResponse =0;
+        int returnFlag = 0;
+        String xmlCrawlFilePath,xslCrawlFilePath,htmlCrawlFilePath;
+        DocumentBuilderFactory crawldbFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder crawlDocBuilder = crawldbFactory.newDocumentBuilder();
+        Document crawlDocument = crawlDocBuilder.newDocument();
+        Element crawlRootElement = crawlDocument.createElement("CrawlResult");
+        crawlDocument.appendChild(crawlRootElement);
         List crawlURLList = new ArrayList();
         URL crawlURL = null;
         HttpURLConnection httpCrawlink = null;
-        int returnFlag = 0;
+        DateFormat autoDateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        DateFormat htmlFileDateFormat = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
+        Date fileDate = new Date();
+        String autoFileName = htmlFileDateFormat.format(fileDate).toString();
         currentURL = webdr.getCurrentUrl();
         String originalUrl = currentURL;
         currentURL = getDomainURL(currentURL);
+        //---
+        Properties prop = new Properties();
+        FileInputStream input = new FileInputStream("config.properties");
+        prop.load(input);
+        xmlCrawlFilePath = prop.getProperty("XMLCRAWL");
+        xslCrawlFilePath = prop.getProperty("XSLTCRAWL");
+        htmlCrawlFilePath = prop.getProperty("HTMLFILE");
+        htmlCrawlFilePath = htmlCrawlFilePath+"/"+"Crawl_"+autoFileName+".html";
+        input.close();
+        //---
 
         try{
             pageSource = webdr.getPageSource();
@@ -641,15 +672,42 @@ class Engine {
                     crawlLink = currentURL+crawlLink;
                 }
                 crawlURL = new URL(crawlLink);
-                webdr.get(crawlLink);
-                httpCrawlink = (HttpURLConnection)crawlURL.openConnection();
-                int URLResponse = httpCrawlink.getResponseCode();
-                System.out.println("Status Code is : "+URLResponse);
-                if(URLResponse != 200){
-                    errorString = "URL Crawl Error";
-                    errorStringLong = errorStringLong + "URL "+crawlLink+" Status is "+"NOT LOADED"+"---";
+                //webdr.get(crawlLink);
+                try{
+                    httpCrawlink = (HttpURLConnection)crawlURL.openConnection();
+                    URLResponse = httpCrawlink.getResponseCode();
+                    System.out.println("Status Code is : "+URLResponse);
+                    if(URLResponse != 200){
+                        errorString = "URL Crawl Error";
+                        errorStringLong = errorStringLong + "URL "+crawlLink+" Status is "+"NOT LOADED"+"---";
+                        returnFlag = 1;
+                    }
+                    Element xmlURLElement = crawlDocument.createElement("URL");
+                    Element xmlURLLink = crawlDocument.createElement("URLLink");
+                    Element xmlURLResponse = crawlDocument.createElement("Response");
+                    xmlURLLink.appendChild(crawlDocument.createTextNode(crawlLink));
+                    xmlURLResponse.appendChild(crawlDocument.createTextNode(String.valueOf(URLResponse)));
+                    xmlURLElement.appendChild(xmlURLLink);
+                    xmlURLElement.appendChild(xmlURLResponse);
+                    crawlRootElement.appendChild(xmlURLElement);
+                }catch (Exception e){
+                    Element xmlURLElement = crawlDocument.createElement("URL");
+                    Element xmlURLLink = crawlDocument.createElement("URLLink");
+                    Element xmlURLResponse = crawlDocument.createElement("Response");
+                    xmlURLLink.appendChild(crawlDocument.createTextNode(crawlLink));
+                    xmlURLResponse.appendChild(crawlDocument.createTextNode(String.valueOf(URLResponse)));
+                    xmlURLElement.appendChild(xmlURLLink);
+                    xmlURLElement.appendChild(xmlURLResponse);
+                    crawlRootElement.appendChild(xmlURLElement);
+                    System.out.println(e.getStackTrace().toString());
+                    errorString = "Error" ;
+                    errorStringLong = e.getStackTrace().toString();
+                    e.printStackTrace();
                     returnFlag = 1;
+
                 }
+
+
 
             }
         }catch (Exception e){
@@ -659,6 +717,17 @@ class Engine {
             e.printStackTrace();
             returnFlag = 1;
         }
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        Transformer transformer = transformerFactory.newTransformer();
+        DOMSource source = new DOMSource(crawlDocument);
+        //StreamResult crawlResult = new StreamResult(new File("C:\\Users\\VC024129\\Documents\\Vijay\\TestFrameWork\\ApplicationReports\\Crawl.xml"));
+        StreamResult crawlResult = new StreamResult(new File(xmlCrawlFilePath));
+        transformer.transform(source,crawlResult);
+        TransformerFactory transformerFactoryHTML = TransformerFactory.newInstance();
+        Transformer transformerHTMLCrawl = transformerFactoryHTML.newTransformer(new javax.xml.transform.stream.StreamSource(xslCrawlFilePath));
+        transformerHTMLCrawl.transform(new javax.xml.transform.stream.StreamSource(xmlCrawlFilePath), new javax.xml.transform.stream.StreamResult(htmlCrawlFilePath));
+        errorString = htmlCrawlFilePath;
+        errorStringLong = "View the Crawl result by clicking the link";
         webdr.get(originalUrl);
         return returnFlag;
     }

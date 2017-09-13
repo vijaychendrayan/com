@@ -37,6 +37,7 @@ public class AutomationEngine  {
         Engine engine = new Engine();
         int prcsReturnValue =0;
         int totalTestCase = 0;
+        int returnStatusOS = 0;
         String prevTestCaseID = " ";
         String currentTestCaseID = " ";
         String currentTestCaseDescr = " ";
@@ -167,6 +168,11 @@ public class AutomationEngine  {
                         testCaseStatus = "FAIL";
 
                     }
+                    //Send test execution status to OS.
+                    //if any one of test case is failed then return 1
+                    if(prcsReturnValue > 0){
+                        returnStatusOS = 1;
+                    }
                 }
                 // End Time
                 long endTime = System.currentTimeMillis();
@@ -218,5 +224,7 @@ public class AutomationEngine  {
         catch (Exception e){e.printStackTrace();
 
         }
+
+        /*System.exit(returnStatusOS);*/
     }
 }
