@@ -6,6 +6,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.openqa.selenium.*;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.interactions.Actions;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -195,6 +196,15 @@ class Engine {
             if(colAction.equals("Crawl")){
                 prcsStatus = crawlLinks(webDriver);
             }
+
+            if (colAction.equals("Hover")) {
+                //System.out.println("In Compare handler");
+                prcsStatus = hoverEventHandler(webDriver, dict);
+            }
+            if (colAction.equals("SwitchTab")) {
+                //System.out.println("In Compare handler");
+                prcsStatus = switchTab(webDriver, dict);
+            }
         }
 
         if(colDriver.equals("Time")){
@@ -326,6 +336,42 @@ class Engine {
         return 0;
     }
 
+    private int hoverEventHandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
+        WebElement webElement;
+        Actions action= new Actions(webDriver);
+        try{
+            webElement = getWebElement(webdr,dict.get("type").toString(),dict.get("match").toString());
+            action.moveToElement(webElement).build().perform();
+            // Take ScreenShot
+            if(dict.get("screenShot").toString().equals("Y")){
+                takeScreenshot(webdr);
+            }
+        }catch (Exception e){
+            errorString = "Element not found exception";
+            errorStringLong = e.toString();
+            return 1;
+        }
+        return 0;
+    }
+
+    private int switchTab(WebDriver webdr, Dictionary dict)throws InterruptedException{
+        WebElement webElement;
+        try{
+            for(String windowHandle: webdr.getWindowHandles())
+            {
+                webdr.switchTo().window(windowHandle);
+            }
+            // Take ScreenShot
+            if(dict.get("screenShot").toString().equals("Y")){
+                takeScreenshot(webdr);
+            }
+        }catch (Exception e){
+            errorString = "Element not found exception";
+            errorStringLong = e.toString();
+            return 1;
+        }
+        return 0;
+    }
     private int comparePageTitle(WebDriver webdr, Dictionary dict) throws InterruptedException{
         WebElement webElement;
         int returnFlag = 1;
