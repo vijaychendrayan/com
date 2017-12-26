@@ -22,17 +22,28 @@ import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+// Concurrency
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import java.io.*;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 /**
  * Created by Vijay Chendrayan Chandrasekar on 5/6/2017.
  */
-public class AutomationEngine  {
 
-    public static void execute(String filePath)throws InterruptedException, NullPointerException,IOException,ArrayIndexOutOfBoundsException, ParserConfigurationException{
+class ProcessQueue implements Runnable {
+
+    private String filePathPQ;
+    public ProcessQueue(String filePath){
+        filePathPQ = filePath;
+    }
+
+    public void executeTask()throws InterruptedException, NullPointerException,IOException,ArrayIndexOutOfBoundsException, ParserConfigurationException{
         Engine engine = new Engine();
         int prcsReturnValue =0;
         int totalTestCase = 0;
@@ -42,7 +53,7 @@ public class AutomationEngine  {
         String currentTestCaseDescr = " ";
         String testCaseStatus = "PASS";
         String cmdFileName;
-        String[] tempStr = filePath.split("\\\\");
+        String[] tempStr = filePathPQ.split("\\\\");
         String tempStr2 = tempStr[tempStr.length-1];
         System.out.println("File Name for temp2 is : "+ tempStr2);
         cmdFileName = tempStr2.substring(0,tempStr2.length()-5);
@@ -63,7 +74,7 @@ public class AutomationEngine  {
         Element originalRoot = rootElement;
         // - END- XML
         //String excelFilePath = args[0];
-        String excelFilePath = filePath;
+        String excelFilePath = filePathPQ;
 
         String driverType,driverPath,driverProp,screenShotFilePath,xmlFilePath,xslFilePath,htmlFilePath,htmlFileName;
         String xmlFileName;
@@ -192,24 +203,45 @@ public class AutomationEngine  {
         catch (Exception e){e.printStackTrace();
 
         }
-
     }
+
+
+    public void run(){
+
+        try {
+            executeTask();
+            TimeUnit.SECONDS.sleep(2);
+        }
+        catch (InterruptedException e){
+            System.out.println(e.toString());
+
+        }
+        catch (IOException e){
+            System.out.println(e.toString());
+        }
+        catch (ParserConfigurationException e){
+            System.out.println(e.toString());
+        }
+    }
+}
+
+
+public class AutomationEngine  {
+
 
     public static void main(String []args) throws InterruptedException, NullPointerException,IOException,ArrayIndexOutOfBoundsException, ParserConfigurationException{
 
         String cmdFilePath = " ";
-        String cmdFileName = " ";
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
         System.out.println("Argument Length : "+args.length);
         if(args.length > 0){
             for(int kk=0;kk<args.length;kk++){
                 cmdFilePath = args[kk];
                 System.out.println("Argument "+kk+" : "+cmdFilePath);
-                execute(cmdFilePath);
+                ProcessQueue pq = new ProcessQueue(cmdFilePath);
+                executor.execute(pq);
             }
-
+            executor.shutdown();
         }
-
-
-        /*System.exit(returnStatusOS);*/
     }
 }
