@@ -117,7 +117,14 @@ class Engine {
                     driverPath = prop.get("FIREFOX").toString();
                     setWebDriver("FIREFOX",driverProp,driverPath);
                 }
-                //IE
+                //MSFTEDGE
+                if(dict.get("type").toString().equals("Edge")){
+
+                    driverProp = "webdriver.edge.driver";
+                    driverPath = prop.get("MSFTEDGE").toString();
+                    setWebDriver("MSFTEDGE",driverProp,driverPath);
+
+                }
                 //Safari
                 // AndroidChrome
                 if(dict.get("type").toString().equals("AndroidChrome")){

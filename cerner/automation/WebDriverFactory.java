@@ -22,6 +22,11 @@ class WebDriverFactory  {
             return  firefoxWebDriver.setWebDriver(prop,path);
 
         }
+        if (driverType.equals("MSFTEDGE")) {
+            MicroSoftEdge microSoftEdge = new MicroSoftEdge();
+            return  microSoftEdge.setWebDriver(prop,path);
+
+        }
         if(driverType.equals("ANDROIDCHROME")){
             AndroidChromeWebDriver androidChromeWebDriver = new AndroidChromeWebDriver();
             try {
