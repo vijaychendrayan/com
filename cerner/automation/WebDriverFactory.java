@@ -27,6 +27,16 @@ class WebDriverFactory  {
             return  microSoftEdge.setWebDriver(prop,path);
 
         }
+        if (driverType.equals("MSFTIE")) {
+            InternetExplorerWebDriver internetExplorerWebDriver = new InternetExplorerWebDriver();
+            return  internetExplorerWebDriver.setWebDriver(prop,path);
+
+        }
+        if (driverType.equals("OPERA")) {
+            OperaWebDriver operaWebDriver  = new OperaWebDriver();
+            return  operaWebDriver.setWebDriver(prop,path);
+
+        }
         if(driverType.equals("ANDROIDCHROME")){
             AndroidChromeWebDriver androidChromeWebDriver = new AndroidChromeWebDriver();
             try {

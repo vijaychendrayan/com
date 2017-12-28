@@ -45,6 +45,7 @@ class ProcessQueue implements Runnable {
 
     public void executeTask()throws InterruptedException, NullPointerException,IOException,ArrayIndexOutOfBoundsException, ParserConfigurationException{
         Engine engine = new Engine();
+        File dirVar = new File (".");
         int prcsReturnValue =0;
         int totalTestCase = 0;
         int returnStatusOS = 0;
@@ -87,8 +88,11 @@ class ProcessQueue implements Runnable {
             Sheet excelSheetTestCase = null;
             Iterator<Row> rowIterator = null;
             Row row = null;
-            //Get XML File path
+
+            //----- End ------
+                        //Get XML File path
             //----- Start-----
+
             Properties prop = new Properties();
             FileInputStream input = new FileInputStream("config.properties");
             prop.load(input);
@@ -97,7 +101,24 @@ class ProcessQueue implements Runnable {
             htmlFilePath = prop.getProperty("HTMLFILE");
             screenShotFilePath = prop.getProperty("SCREENSHOTFILE");
             input.close();
-            //----- End ------
+            //--- Current Working folder
+            System.out.println("Current Folder : "+ dirVar.getAbsolutePath());
+            System.setProperty("user.dir",htmlFilePath);
+            System.out.println("New Current Folder : "+ dirVar.getAbsolutePath());
+            htmlFilePath = htmlFilePath+"/"+autoFileName;
+            screenShotFilePath=htmlFilePath+"/"+"Images";
+            if(new File(htmlFilePath).mkdir()){
+                System.out.println("Directory "+autoFileName+" created");
+            }else {
+                System.out.println("Failed to create Directory ");
+            }
+            if(new File(screenShotFilePath).mkdir()){
+                System.out.println("Directory "+autoFileName+" created");
+            }else {
+                System.out.println("Failed to create Directory ");
+            }
+
+            //-- End
             htmlFileName = "Auto_"+autoFileName+".html";
             xmlFileName = autoFileName+".xml";
             htmlFilePath = htmlFilePath+"/"+htmlFileName;

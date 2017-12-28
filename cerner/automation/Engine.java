@@ -125,6 +125,22 @@ class Engine {
                     setWebDriver("MSFTEDGE",driverProp,driverPath);
 
                 }
+                //MSFTIE
+                if(dict.get("type").toString().equals("IE")){
+
+                    driverProp = "webdriver.ie.driver";
+                    driverPath = prop.get("MSFTIE").toString();
+                    setWebDriver("MSFTIE",driverProp,driverPath);
+
+                }
+                //OPERA
+                if(dict.get("type").toString().equals("Opera")){
+
+                    driverProp = "webdriver.opera.driver";
+                    driverPath = prop.get("OPERA").toString();
+                    setWebDriver("OPERA",driverProp,driverPath);
+
+                }
                 //Safari
                 // AndroidChrome
                 if(dict.get("type").toString().equals("AndroidChrome")){
