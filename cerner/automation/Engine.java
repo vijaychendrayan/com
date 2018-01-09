@@ -1,17 +1,17 @@
 package com.cerner.automation;
 
-
 import org.apache.commons.io.FileUtils;
 import org.apache.poi.ss.usermodel.Row;
 import org.openqa.selenium.*;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -42,6 +42,7 @@ class Engine {
     //public String processNum;
     //public String processUnitNum;
     private Dictionary dict = new Hashtable();
+    private Map<String,String> bindValue = new HashMap<String, String>();
     private String [] colKey = new String[]{"prcsID","prcsDescr","prcsSeqNum","prcsSeqDescr","driver","action","type","match","parameter","active","screenShot","onError"};
     //public String colValue;
     public String errorString = "NA";
@@ -228,6 +229,16 @@ class Engine {
                 //System.out.println("In Compare handler");
                 prcsStatus = switchTab(webDriver, dict);
             }
+            if (colAction.equals("CheckField")) {
+                prcsStatus = checkFieldIsPresent(webDriver, dict);
+            }
+            if (colAction.equals("CheckDropDownOptions")) {
+                prcsStatus = checkDropDownOptions(webDriver, dict);
+            }
+            if (colAction.equals("Store")) {
+                prcsStatus = storeBindValue(webDriver, dict);
+            }
+
         }
 
         if(colDriver.equals("Time")){
@@ -310,7 +321,29 @@ class Engine {
 
     private int sendKeysEventHandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
         WebElement webElement;
+        String param;
         try{
+            webElement = getWebElement(webdr,dict.get("type").toString(),dict.get("match").toString());
+            // Check if bind variable is passed in parameter
+            if (dict.get("parameter").toString().substring(0,1).equals(":")){
+
+                param = bindValue.get(dict.get("parameter").toString());
+                System.out.println("sendKeysEventHandler -- param bind -- : "+param);
+            }else{
+                param = dict.get("parameter").toString();
+                System.out.println("sendKeysEventHandler -- param non bind -- : "+param);
+            }
+            webElement.sendKeys(param);
+            // Take ScreenShot
+            if(dict.get("screenShot").toString().equals("Y")){
+                takeScreenshot(webdr);
+            }
+        }catch (Exception e){
+            errorString = "Element not found exception";
+            errorStringLong = e.toString();
+            return 1;
+        }
+        /*try{
             webElement = getWebElement(webdr,dict.get("type").toString(),dict.get("match").toString());
             webElement.sendKeys(dict.get("parameter").toString());
             // Take ScreenShot
@@ -321,7 +354,7 @@ class Engine {
             errorString = "Element not found exception";
             errorStringLong = e.toString();
             return 1;
-        }
+        }*/
         return 0;
     }
 
@@ -395,6 +428,7 @@ class Engine {
         }
         return 0;
     }
+
     private int comparePageTitle(WebDriver webdr, Dictionary dict) throws InterruptedException{
         WebElement webElement;
         int returnFlag = 1;
@@ -424,9 +458,20 @@ class Engine {
     private int compareEventHandler(WebDriver webdr, Dictionary dict) throws InterruptedException{
         WebElement webElement;
         int returnFlag = 1;
+        String param;
+        System.out.println("CompareEventHandler");
         try{
             webElement = getWebElement(webdr,dict.get("type").toString(),dict.get("match").toString());
-            if(webElement.getText().equals(dict.get("parameter").toString())){
+            // Check if bind variable is passed in parameter
+            if (dict.get("parameter").toString().substring(0,1).equals(":")){
+
+                param = bindValue.get(dict.get("parameter").toString());
+                System.out.println("CompareEventHandler -- param bind -- : "+param);
+            }else{
+                param = dict.get("parameter").toString();
+                System.out.println("CompareEventHandler -- param non bind -- : "+param);
+            }
+            if(webElement.getText().equals(param)){
                 System.out.println("====>String Matched<====");
                 returnFlag = 0;
             }
@@ -436,6 +481,16 @@ class Engine {
                 errorStringLong =  "====>Compare string NOT Matched<===";
                 returnFlag = 1;
             }
+            /*if(webElement.getText().equals(dict.get("parameter").toString())){
+                System.out.println("====>String Matched<====");
+                returnFlag = 0;
+            }
+            else {
+                System.out.println("====>String NOT Matched<===");
+                errorString = "====>Compare string NOT Matched<===";
+                errorStringLong =  "====>Compare string NOT Matched<===";
+                returnFlag = 1;
+            }*/
             // Take ScreenShot
             if(dict.get("screenShot").toString().equals("Y")){
                 takeScreenshot(webdr);
@@ -674,25 +729,112 @@ class Engine {
         webdr.get(originalUrl);
         return returnFlag;
     }
+
+    private int checkFieldIsPresent(WebDriver webdr, Dictionary dict) throws InterruptedException {
+        WebElement element;
+        int returnFlag = 1;
+        try {
+            element = getWebElement(webdr, dict.get("type").toString(), dict.get("match").toString());
+            if (element.isDisplayed()) {
+                returnFlag = 0;
+            } else {
+                errorString = "Field does not exist";
+                returnFlag = 1;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return returnFlag;
+
+    }
+
+    // Added By KV031709
+    private int checkDropDownOptions(WebDriver webdr, Dictionary dict)
+            throws InterruptedException {
+        int returnFlag = 1, flag = 0;
+        int noOfOptions = 0;
+        String[] expectedOptions = null;
+        try {
+            String[] options = webdr.findElement(By.xpath(dict.get("match").toString())).getText().split("\n");
+            noOfOptions = options.length;
+            System.out.println("number=" + noOfOptions);
+            expectedOptions = dict.get("parameter").toString().split(",");
+            for (int j = 0; j < expectedOptions.length; j++) {
+                System.out.println(expectedOptions[j]);
+                if (expectedOptions[j].contains(options[j]))
+                    flag = 0;
+                else
+                    flag = flag + 1;
+            }
+            System.out.println("count=" + flag);
+            if (flag == 0) {
+                returnFlag = 0;
+            } else {
+                errorString = "Options does not match";
+                returnFlag = 1;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return returnFlag;
+    }
+
+    private int storeBindValue(WebDriver  webdr, Dictionary dict){
+        WebElement webElement;
+        String bindKey=null;
+
+        try{
+            webElement = getWebElement(webdr,dict.get("type").toString(),dict.get("match").toString());
+            System.out.println(webElement.getTagName());
+            System.out.println("Parameter : "+dict.get("parameter").toString());
+            System.out.println("TextValue : "+ webElement.getText());
+            bindKey = dict.get("parameter").toString();
+            if(bindKey.substring(0,1).equalsIgnoreCase(":")){
+                bindValue.put(bindKey,webElement.getText());
+            }else {
+                System.out.println("Invalid bind value, Valid Bind should start with ':' like :Bind1");
+            }
+            System.out.println(bindValue.get(bindKey));
+            for(Map.Entry map: bindValue.entrySet()){
+                System.out.println(map.getKey()+" "+map.getValue());
+            }
+        }catch (Exception e){
+            errorString = "Element not found exception";
+            errorStringLong = e.toString();
+            return 1;
+        }
+        return 0;
+
+    }
     private WebElement getWebElement(WebDriver webdr,String searchBy,String match){
+        WebDriverWait wait = new WebDriverWait(webdr, 50);
         WebElement webElement = null;
         if(searchBy.equals("Xpath")){
             webElement = webdr.findElement(By.xpath(match));
-            return webElement;
+
+            if (wait.until(ExpectedConditions.elementToBeClickable(webElement)).isDisplayed()) {
+                return webElement;
+            }
+
         }
         if(searchBy.equals("ID")){
             webElement = webdr.findElement(By.id(match));
-            return webElement;
+            if (wait.until(ExpectedConditions.elementToBeClickable(webElement)).isDisplayed()) {
+                return webElement;
+            }
         }
         if(searchBy.equals("CSSSelector")){
             webElement = webdr.findElement(By.cssSelector(match));
-            return webElement;
+            if (wait.until(ExpectedConditions.elementToBeClickable(webElement)).isDisplayed()) {
+                return webElement;
+            }
         }
         if(searchBy.equals("ClassName")){
             webElement = webdr.findElement(By.className(match));
-            return webElement;
+            if (wait.until(ExpectedConditions.elementToBeClickable(webElement)).isDisplayed()) {
+                return webElement;
+            }
         }
-
         return webElement;
     }
 

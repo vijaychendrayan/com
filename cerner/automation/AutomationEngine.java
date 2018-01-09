@@ -211,8 +211,8 @@ class ProcessQueue implements Runnable {
             transformer.transform(source,result);
             //Generate HTML report using XSLT
             System.out.println("--------");
-            System.out.println("XML File : "+xmlFilePath);
-            System.out.println("XSL File : "+xslFilePath);
+            //System.out.println("XML File : "+xmlFilePath);
+            //System.out.println("XSL File : "+xslFilePath);
             System.out.println("HTML File : "+htmlFilePath);
             TransformerFactory transformerFactoryHTML = TransformerFactory.newInstance();
             Transformer transformHTML = transformerFactoryHTML.newTransformer(new javax.xml.transform.stream.StreamSource(xslFilePath));
