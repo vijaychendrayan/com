@@ -255,6 +255,15 @@ class Engine {
             if(colAction.equals("DismissAlert")){
                 prcsStatus = dismissAlert(dict);
             }
+            //IsEnabled - Rachithra
+            if(colAction.equals("IsEnabled")){
+                prcsStatus=isElementEnabled(webDriver,dict);
+            }
+            //IsEnabled - Rachithra
+            if(colAction.equals("SendText")){
+                prcsStatus=sendTextEventHandler(webDriver,dict);
+            }
+
 
         }
 
@@ -349,7 +358,32 @@ class Engine {
         return 0;
     }
 
-
+    private int isElementEnabled(WebDriver webdr, Dictionary dict) throws InterruptedException{
+        boolean element;
+        int returnFlag = 1;
+        try{
+            element = getWebElement(webdr,dict.get("type").toString(),dict.get("match").toString()).isEnabled();
+            if(element==true){
+                System.out.println("====>Element is Enabled<====");
+                returnFlag = 0;
+            }
+            else {
+                System.out.println("====>Element NOT Enabled<===");
+                errorString = "====>Element NOT Enabled<===";
+                errorStringLong =  "====>Element NOT Enabled<===";
+                returnFlag = 1;
+            }
+            // Take ScreenShot
+            if(dict.get("screenShot").toString().equals("Y")){
+                takeScreenshot(webdr);
+            }
+        }catch (Exception e){
+            errorString = "Element is not enabled";
+            errorStringLong = e.toString();
+            returnFlag = 1;
+        }
+        return  returnFlag;
+    }
     private int sendTextEventHandler(WebDriver webdr, Dictionary dict) throws InterruptedException {
         WebElement webElement;
         try {
