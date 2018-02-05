@@ -66,6 +66,8 @@ class Engine {
         webDriver = webDriverFactory.setWebDriver(driverType,driverProp,driverPath);
     }
 
+
+
     public void setScreenShotPath(String path){
         //System.out.println("--Setting up ScreenShot File path---");
         screenShotPath = path;
@@ -84,6 +86,7 @@ class Engine {
         logString = logString +" : "+dict.get("action")+dict.get("type")+" : "+dict.get("match");
         logString = logString +" : "+dict.get("parameter")+" : "+dict.get("active");
         logString = logString +" : "+dict.get("screenShot")+" : "+dict.get("onError")+"<=====";
+
 
         //Navigate
         //System.out.println("Driver : "+colDriver+" colAction : "+colAction);
@@ -185,6 +188,11 @@ class Engine {
                 //System.out.println("In Send keys handler");
                 prcsStatus = sendKeysEventHandler(webDriver, dict);
             }
+            // Send Text/Input
+            //if (colAction.equals("SendKeys")) {
+                // System.out.println("In Send keys handler");
+            //    prcsStatus = sendKeysEventHandler(webDriver, key);
+            //}
             //Clear
             if(colAction.equals("Clear")){
                 //System.out.println("In Clear event");
@@ -239,6 +247,15 @@ class Engine {
                 prcsStatus = storeBindValue(webDriver, dict);
             }
 
+            //Accept Alert - Rachithra
+            if(colAction.equals("AcceptAlert")){
+                prcsStatus = acceptAlert(dict);
+            }
+            //Dismiss Alert - Rachithra
+            if(colAction.equals("DismissAlert")){
+                prcsStatus = dismissAlert(dict);
+            }
+
         }
 
         if(colDriver.equals("Time")){
@@ -251,8 +268,8 @@ class Engine {
         }
         System.out.println(logString+"===>Return : "+prcsStatus);
         if(prcsStatus==1){
-
-            webDriver.navigate().refresh();
+            if(webDriver != null)
+                webDriver.navigate().refresh();
         }
         return prcsStatus;
     }
@@ -295,6 +312,7 @@ class Engine {
 
     private int windowEventHandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
         Dimension dimension;
+        String jScript;
         try{
 
             if(dict.get("type").toString().equals("Maximize")){
@@ -308,11 +326,41 @@ class Engine {
                 dimension = new Dimension(width,height);
                 webdr.manage().window().setSize(dimension);
             }
+
+            if(dict.get("type").toString().equals("Scroll")){
+                int width=0,height =0;
+                String[] dimen = dict.get("parameter").toString().split(",");
+                width = Integer.parseInt(dimen[0]) ;
+                height = Integer.parseInt(dimen[1]) ;
+                dimension = new Dimension(width,height);
+                JavascriptExecutor scroll = (JavascriptExecutor)webdr;
+                jScript = "scroll("+dimen[0]+","+dimen[1]+")";
+                scroll.executeScript(jScript,"");
+            }
+
             if(dict.get("screenShot").toString().equals("Y")){
                 takeScreenshot(webdr);
             }
         }catch (Exception e){
             errorString = "Window Max/Min Error";
+            errorStringLong = e.toString();
+            return 1;
+        }
+        return 0;
+    }
+
+
+    private int sendTextEventHandler(WebDriver webdr, Dictionary dict) throws InterruptedException {
+        WebElement webElement;
+        try {
+            webElement = getWebElement(webdr, dict.get("type").toString(), dict.get("match").toString());
+            webElement.sendKeys(dict.get("parameter").toString() + Keys.ENTER);
+            // Take ScreenShot
+            if (dict.get("screenShot").toString().equals("Y")) {
+                takeScreenshot(webdr);
+            }
+        } catch (Exception e) {
+            errorString = "Element not found exception";
             errorStringLong = e.toString();
             return 1;
         }
@@ -806,6 +854,37 @@ class Engine {
         return 0;
 
     }
+
+
+    //Alert handing - Accept Alert - Rachithra
+    private int acceptAlert(Dictionary dict)throws InterruptedException{
+        WebElement webElement;
+        try{
+            Alert alert= webDriver.switchTo().alert();
+            System.out.println(alert.getText());
+            alert.accept();
+        }catch (Exception e){
+            errorString = "Element not found exception";
+            errorStringLong = e.toString();
+            return 1;
+        }
+        return 0;
+    }
+    //Alert handing - Dismiss Alert - Rachithra
+    private int dismissAlert(Dictionary dict)throws InterruptedException{
+        WebElement webElement;
+        try{
+            Alert alert= webDriver.switchTo().alert();
+            System.out.println(alert.getText());
+            alert.dismiss();
+        }
+        catch (Exception e){
+            errorString = "Element not found exception";
+            errorStringLong = e.toString();
+            return 1;
+        }
+        return 0;
+    }
     private WebElement getWebElement(WebDriver webdr,String searchBy,String match){
         WebDriverWait wait = new WebDriverWait(webdr, 50);
         WebElement webElement = null;
@@ -835,6 +914,11 @@ class Engine {
                 return webElement;
             }
         }
+        if(searchBy.equals("LinkText")){
+            webElement = webdr.findElement(By.linkText(match));
+            return webElement;
+        }
+
         return webElement;
     }
 
