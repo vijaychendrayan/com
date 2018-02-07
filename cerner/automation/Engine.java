@@ -34,6 +34,16 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
+import javax.crypto.Cipher;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import javax.xml.bind.DatatypeConverter;
+
+
 
 class Engine {
     //public int processRequestCont;
@@ -52,6 +62,7 @@ class Engine {
     private String colAction;
     private String screenShotPath;
     private int prcsStatus;
+    private String key = "eMxzpUKnLmW1qfOeb9cEeg==";
     WebDriver webDriver;
 
     public  Engine ()
@@ -188,6 +199,12 @@ class Engine {
                 //System.out.println("In Send keys handler");
                 prcsStatus = sendKeysEventHandler(webDriver, dict);
             }
+
+            //Send Keys Encrypted
+            if (colAction.equals("SendKeysEncrypted")) {
+                //System.out.println("In Send keys handler");
+                prcsStatus = sendKeysEncryptionEventHandler(webDriver, dict);
+            }
             // Send Text/Input
             //if (colAction.equals("SendKeys")) {
                 // System.out.println("In Send keys handler");
@@ -237,7 +254,7 @@ class Engine {
                 //System.out.println("In Compare handler");
                 prcsStatus = switchTab(webDriver, dict);
             }
-            if (colAction.equals("CheckField")) {
+            if (colAction.equals("IsDisplayed")) {
                 prcsStatus = checkFieldIsPresent(webDriver, dict);
             }
             if (colAction.equals("CheckDropDownOptions")) {
@@ -246,7 +263,6 @@ class Engine {
             if (colAction.equals("Store")) {
                 prcsStatus = storeBindValue(webDriver, dict);
             }
-
             //Accept Alert - Rachithra
             if(colAction.equals("AcceptAlert")){
                 prcsStatus = acceptAlert(dict);
@@ -264,6 +280,26 @@ class Engine {
                 prcsStatus=sendTextEventHandler(webDriver,dict);
             }
 
+            //IsEnabled - Rachithra
+            if(colAction.equals("IsSelected")){
+                prcsStatus=isElementSelected(webDriver,dict);
+            }
+
+
+            //GetTagName
+            if(colAction.equals("GetTagName")){
+                prcsStatus= getTagName(webDriver,dict);
+            }
+
+            //GetText
+            if(colAction.equals("GetText")){
+                //prcsStatus= getTagName(webDriver,dict);
+            }
+
+            // Submit
+            if(colAction.equals("Submit")){
+                //prcsStatus= submitEvent(webDriver,dict);
+            }
 
         }
 
@@ -274,6 +310,21 @@ class Engine {
             if(colAction.equals("PrintDateTime")){
                 prcsStatus = printDateTime(dict);
             }
+        }
+
+        if(colDriver.equals("Encrypt")){
+            try {
+                  System.out.println("----------------------------------------------------------");
+                  System.out.println(dict.get("parameter").toString() + " -> Encrypted String to -> "+encryptString(dict.get("parameter").toString(), stringToKey(key)));
+                  System.out.println("----------------------------------------------------------");
+                           }
+            catch (Exception e){
+                errorString = "Unable to Encrypt the given string";
+                errorStringLong = e.toString();
+                return 1;
+            }
+
+
         }
         System.out.println(logString+"===>Return : "+prcsStatus);
         if(prcsStatus==1){
@@ -302,13 +353,20 @@ class Engine {
                     //webDriver.get(dict.get("match").toString());
                     webdr.get(dict.get("parameter").toString());
                 }
-            if(dict.get("type").toString().equals("Refresh")){
-                webdr.navigate().refresh();
-            }
+                if(dict.get("type").toString().equals("Refresh")){
+                    webdr.navigate().refresh();
+                }
 
-            if (dict.get("screenShot").toString().equals("Y")) {
-                takeScreenshot(webdr);
-            }
+                if(dict.get("type").toString().equals("Forward")){
+                    webdr.navigate().forward();
+                }
+                if(dict.get("type").toString().equals("Backward")){
+                    webdr.navigate().back();
+                }
+
+                if (dict.get("screenShot").toString().equals("Y")) {
+                    takeScreenshot(webdr);
+                }
 
         }
         catch (Exception e){
@@ -384,6 +442,63 @@ class Engine {
         }
         return  returnFlag;
     }
+
+    private int isElementSelected(WebDriver webdr, Dictionary dict) throws InterruptedException{
+        boolean element;
+        int returnFlag = 1;
+        try{
+            element = getWebElement(webdr,dict.get("type").toString(),dict.get("match").toString()).isSelected();
+            if(element==true){
+                System.out.println("====>Element is Selected<====");
+                returnFlag = 0;
+            }
+            else {
+                System.out.println("====>Element NOT Selected<===");
+                errorString = "====>Element NOT Selected<===";
+                errorStringLong =  "====>Element NOT Selected<===";
+                returnFlag = 1;
+            }
+            // Take ScreenShot
+            if(dict.get("screenShot").toString().equals("Y")){
+                takeScreenshot(webdr);
+            }
+        }catch (Exception e){
+            errorString = "Element is not enabled";
+            errorStringLong = e.toString();
+            returnFlag = 1;
+        }
+        return  returnFlag;
+    }
+
+    private int submitEvent(WebDriver webdr, Dictionary dict) throws InterruptedException{
+
+        WebElement webElement;
+        int returnFlag = 1;
+        try{
+            webElement = getWebElement(webdr,dict.get("type").toString(),dict.get("match").toString());
+
+            if(webElement!=null){
+                webElement.submit();
+                System.out.println("====>Submitted successfully<====");
+                returnFlag = 0;
+            }
+            else {
+                System.out.println("====>Element NOT Found<===");
+                errorString = "====>Element NOT Found<===";
+                errorStringLong =  "====>Element NOT Found<===";
+                returnFlag = 1;
+            }
+            // Take ScreenShot
+            if(dict.get("screenShot").toString().equals("Y")){
+                takeScreenshot(webdr);
+            }
+        }catch (Exception e){
+            errorString = "Element is not enabled";
+            errorStringLong = e.toString();
+            returnFlag = 1;
+        }
+        return  returnFlag;
+    }
     private int sendTextEventHandler(WebDriver webdr, Dictionary dict) throws InterruptedException {
         WebElement webElement;
         try {
@@ -439,6 +554,40 @@ class Engine {
         }*/
         return 0;
     }
+
+
+    private int sendKeysEncryptionEventHandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
+        WebElement webElement;
+        String param;
+        try{
+            webElement = getWebElement(webdr,dict.get("type").toString(),dict.get("match").toString());
+            param = dict.get("parameter").toString();
+            webElement.sendKeys(decryptString(stringToByte(param),stringToKey(key)));
+            // Take ScreenShot
+            if(dict.get("screenShot").toString().equals("Y")){
+                takeScreenshot(webdr);
+            }
+        }catch (Exception e){
+            errorString = "Element not found exception";
+            errorStringLong = e.toString();
+            return 1;
+        }
+        /*try{
+            webElement = getWebElement(webdr,dict.get("type").toString(),dict.get("match").toString());
+            webElement.sendKeys(dict.get("parameter").toString());
+            // Take ScreenShot
+            if(dict.get("screenShot").toString().equals("Y")){
+                takeScreenshot(webdr);
+            }
+        }catch (Exception e){
+            errorString = "Element not found exception";
+            errorStringLong = e.toString();
+            return 1;
+        }*/
+        return 0;
+    }
+
+
 
     private int clearEventHandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
         WebElement webElement;
@@ -889,6 +1038,34 @@ class Engine {
 
     }
 
+    private int getTagName(WebDriver  webdr, Dictionary dict){
+        WebElement webElement;
+        String bindKey=null;
+
+        try{
+            webElement = getWebElement(webdr,dict.get("type").toString(),dict.get("match").toString());
+            System.out.println(webElement.getTagName());
+            System.out.println("Parameter : "+dict.get("parameter").toString());
+            System.out.println("TextValue : "+ webElement.getText());
+            bindKey = dict.get("parameter").toString();
+            if(bindKey.substring(0,1).equalsIgnoreCase(":")){
+                bindValue.put(bindKey,webElement.getText());
+            }else {
+                System.out.println("Invalid bind value, Valid Bind should start with ':' like :Bind1");
+            }
+            System.out.println(bindValue.get(bindKey));
+            for(Map.Entry map: bindValue.entrySet()){
+                System.out.println(map.getKey()+" "+map.getValue());
+            }
+        }catch (Exception e){
+            errorString = "Element not found exception";
+            errorStringLong = e.toString();
+            return 1;
+        }
+        return 0;
+
+    }
+
 
     //Alert handing - Accept Alert - Rachithra
     private int acceptAlert(Dictionary dict)throws InterruptedException{
@@ -1140,6 +1317,46 @@ class Engine {
             errorStringLong = e.toString();
         }
 
+    }
+
+    private byte[] stringToByte(String str){
+        byte [] byteString;
+        byteString = Base64.getDecoder().decode(str);
+        return byteString;
+
+    }
+
+    private  String byteToString(byte[] bytes){
+        String str;
+        str = Base64.getEncoder().encodeToString(bytes);
+        return  str;
+
+    }
+
+    private SecretKey stringToKey(String keyStr){
+        byte[] decodeKey = stringToByte(keyStr);
+        SecretKey secretKey = new SecretKeySpec(decodeKey,0,decodeKey.length,"AES");
+        return  secretKey;
+    }
+
+    private String decryptString(byte[] byteCipherString, SecretKey secretKey) throws Exception{
+        Cipher aesCipher = Cipher.getInstance("AES");
+        aesCipher.init(Cipher.DECRYPT_MODE,secretKey);
+        byte[] decodedByte = aesCipher.doFinal(byteCipherString);
+        return new String(decodedByte);
+    }
+
+    public String encryptString(String str, SecretKey secretKey) throws Exception{
+        Cipher aesCipher = Cipher.getInstance("AES");
+        aesCipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        byte[] byteCipherText = aesCipher.doFinal(str.getBytes());
+        return byteToString(byteCipherText);
+    }
+
+    public static String getEncryptedString(byte[] secKey){
+        byte encoded[] = secKey;
+        String encodedKey = Base64.getEncoder().encodeToString(encoded);
+        return encodedKey;
     }
 
     public Node getXMLProcessNode(Document document,Row row,int returnValue,long execTime,String errorString,String errorStringLong,String screenShotName ){
