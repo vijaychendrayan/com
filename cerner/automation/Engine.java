@@ -43,8 +43,6 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.bind.DatatypeConverter;
 
-
-
 class Engine {
     //public int processRequestCont;
     //public String processDescr;
@@ -287,12 +285,12 @@ class Engine {
 
 
             //GetTagName
-            if(colAction.equals("GetTagName")){
+            if(colAction.equals("CompareTagName")){
                 prcsStatus= getTagName(webDriver,dict);
             }
 
             //GetText
-            if(colAction.equals("GetText")){
+            if(colAction.equals("CompareText")){
                 //prcsStatus= getTagName(webDriver,dict);
             }
 
@@ -300,6 +298,25 @@ class Engine {
             if(colAction.equals("Submit")){
                 //prcsStatus= submitEvent(webDriver,dict);
             }
+
+            // GetAttribute and Compare
+            if(colAction.equals("CompareAttribute")){
+                prcsStatus= compareAttribute(webDriver,dict);
+            }
+
+            // GetSize and Compare
+            if(colAction.equals("CheckSize")){
+                //prcsStatus= compareSize(webDriver,dict);
+            }
+            // GetLocation and Compare
+            if(colAction.equals("CheckLocation")){
+                //prcsStatus= compareLocation(webDriver,dict);
+            }
+            // Get CSS Value
+            if(colAction.equals("CheckCssValue")){
+                //prcsStatus= compareCssValue(webDriver,dict);
+            }
+
 
         }
 
@@ -572,18 +589,7 @@ class Engine {
             errorStringLong = e.toString();
             return 1;
         }
-        /*try{
-            webElement = getWebElement(webdr,dict.get("type").toString(),dict.get("match").toString());
-            webElement.sendKeys(dict.get("parameter").toString());
-            // Take ScreenShot
-            if(dict.get("screenShot").toString().equals("Y")){
-                takeScreenshot(webdr);
-            }
-        }catch (Exception e){
-            errorString = "Element not found exception";
-            errorStringLong = e.toString();
-            return 1;
-        }*/
+
         return 0;
     }
 
@@ -733,6 +739,48 @@ class Engine {
         }
         return  returnFlag;
     }
+
+
+    private int compareAttribute(WebDriver webdr, Dictionary dict) throws InterruptedException{
+        WebElement webElement;
+        int returnFlag = 1;
+        String param;
+        String[] attrib;
+        System.out.println("CompareAttribute");
+        try{
+
+            webElement = getWebElement(webdr,dict.get("type").toString(),dict.get("match").toString());
+
+            // Check if bind variable is passed in parameter
+            param = dict.get("parameter").toString();
+
+            attrib = param.split(":");
+
+            if(webElement.getAttribute(attrib[0]).equals(attrib[1])){
+                System.out.println("====>Attribute Matched<====");
+                returnFlag = 0;
+            }
+            else {
+                System.out.println("====>Attribute NOT Matched<===");
+                errorString = "====>Attribute NOT Matched<===";
+                errorStringLong =  "====>Attribute NOT Matched<===";
+                returnFlag = 1;
+            }
+
+            // Take ScreenShot
+            if(dict.get("screenShot").toString().equals("Y")){
+                takeScreenshot(webdr);
+            }
+        }catch (Exception e){
+            errorString = "Element not found exception";
+            errorStringLong = e.toString();
+            returnFlag = 1;
+        }
+        return  returnFlag;
+    }
+
+
+
 
     private int checkMinification(WebDriver webdr, Dictionary dict) throws MalformedURLException{
         String pageSource = " ";
