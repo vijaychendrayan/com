@@ -82,8 +82,8 @@ class Engine {
         screenShotPath = path;
     }
 
-    public int processRequest(Row row) throws InterruptedException, MalformedURLException, ParserConfigurationException,TransformerException,IOException{
-        copyHashTable(row);
+    public int processRequest(ProcessData processData) throws InterruptedException, MalformedURLException, ParserConfigurationException,TransformerException,IOException{
+        copyHashTable(processData);
         prcsStatus = 1;
 
         //System.out.println(dict.get("prcsID")+" "+dict.get("prcsSeqNum"));
@@ -351,13 +351,34 @@ class Engine {
         return prcsStatus;
     }
 
-    private void copyHashTable(Row row){
+    private void copyHashTable(ProcessData pd){
+
+
+        dict.put(colKey[0],pd.testCaseID );
+        dict.put(colKey[1],pd.testCaseDescr );
+        dict.put(colKey[2],pd.seqNo );
+        dict.put(colKey[3],pd.testDescr );
+        dict.put(colKey[4],pd.driver );
+        dict.put(colKey[5],pd.action );
+        dict.put(colKey[6],pd.type );
+        dict.put(colKey[7],pd.match );
+        dict.put(colKey[8],pd.param );
+        dict.put(colKey[9],pd.active );
+        dict.put(colKey[10],pd.screenShot );
+        dict.put(colKey[11],pd.onError );
+
+
+
+    }
+
+
+    /*private void copyHashTable(Row row){
 
         for (int i=0; i<row.getLastCellNum();i++)
         {
             dict.put(colKey[i],row.getCell(i).getRichStringCellValue().getString());
         }
-    }
+    }*/
 
     private int webNavigateHandler(WebDriver webdr, Dictionary dict) throws InterruptedException{
         int returnFlag = 0;
@@ -1407,8 +1428,8 @@ class Engine {
         return encodedKey;
     }
 
-    public Node getXMLProcessNode(Document document,Row row,int returnValue,long execTime,String errorString,String errorStringLong,String screenShotName ){
-        copyHashTable(row);
+    public Node getXMLProcessNode(Document document,ProcessData processData,int returnValue,long execTime,String errorString,String errorStringLong,String screenShotName ){
+        copyHashTable(processData);
         String activeRow,result = "NORUN";
         String shortErrorMsg = " ";
         activeRow =  dict.get("active").toString();
