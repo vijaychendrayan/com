@@ -75,8 +75,6 @@ class Engine {
         webDriver = webDriverFactory.setWebDriver(driverType,driverProp,driverPath);
     }
 
-
-
     public void setScreenShotPath(String path){
         //System.out.println("--Setting up ScreenShot File path---");
         screenShotPath = path;
@@ -593,7 +591,6 @@ class Engine {
         return 0;
     }
 
-
     private int sendKeysEncryptionEventHandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
         WebElement webElement;
         String param;
@@ -613,8 +610,6 @@ class Engine {
 
         return 0;
     }
-
-
 
     private int clearEventHandler(WebDriver webdr, Dictionary dict)throws InterruptedException{
         WebElement webElement;
@@ -713,6 +708,7 @@ class Engine {
         }
         return  returnFlag;
     }
+
     private int compareEventHandler(WebDriver webdr, Dictionary dict) throws InterruptedException{
         WebElement webElement;
         int returnFlag = 1;
@@ -870,6 +866,7 @@ class Engine {
         errorStringLong = returnMinfiResult;
         return returnFlag;
     }
+
     private List getResourceURL(String pageSource){
         System.out.println("Inside getResourceURL");
         List resultResourceURL = new ArrayList();
@@ -896,6 +893,7 @@ class Engine {
         System.out.println("before return resultResourceURL "+resultResourceURL);
         return resultResourceURL;
     }
+
     private List getImageResourceURL(String pageSource){
         System.out.println("Inside getImageResourceURL");
         List resultImgResourceURL = new ArrayList();
@@ -926,6 +924,7 @@ class Engine {
         return  resultImgResourceURL;
 
     }
+
     private String getDomainURL(String currentURL) throws MalformedURLException{
         URL domainURL=null;
         String hostUrl=" ";
@@ -940,6 +939,7 @@ class Engine {
         System.out.println("hostUrl : "+hostUrl);
         return hostUrl;
     }
+
     private int checkImageLoad(WebDriver webdr,Dictionary dict){
         int returnFlag = 0;
         WebElement webElement;
@@ -1135,7 +1135,6 @@ class Engine {
 
     }
 
-
     //Alert handing - Accept Alert - Rachithra
     private int acceptAlert(Dictionary dict)throws InterruptedException{
         WebElement webElement;
@@ -1150,6 +1149,7 @@ class Engine {
         }
         return 0;
     }
+
     //Alert handing - Dismiss Alert - Rachithra
     private int dismissAlert(Dictionary dict)throws InterruptedException{
         WebElement webElement;
@@ -1165,6 +1165,7 @@ class Engine {
         }
         return 0;
     }
+
     private WebElement getWebElement(WebDriver webdr,String searchBy,String match){
         WebDriverWait wait = new WebDriverWait(webdr, 50);
         WebElement webElement = null;
@@ -1413,6 +1414,10 @@ class Engine {
         aesCipher.init(Cipher.DECRYPT_MODE,secretKey);
         byte[] decodedByte = aesCipher.doFinal(byteCipherString);
         return new String(decodedByte);
+    }
+
+    public String getBinvalue(String bValue){
+       return bindValue.get(bValue);
     }
 
     public String encryptString(String str, SecretKey secretKey) throws Exception{

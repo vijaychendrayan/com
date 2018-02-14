@@ -51,6 +51,10 @@ class ProcessQueue implements Runnable {
         int totalTestCase = 0;
         int returnStatusOS = 0;
         boolean controlBlock = false;
+        boolean ifBlockBegin = false;
+        boolean ifBlockEnd = false;
+        boolean ifBlockStatus =false;
+
         ArrayList<ProcessData> processDataList = new ArrayList<ProcessData>();
         int loopCount = 0;
         ProcessData processData = new ProcessData();
@@ -207,6 +211,7 @@ class ProcessQueue implements Runnable {
                                 pdtmpSheet.param = excelWorkbook.getSheet(sheetName).getRow(cellRow).getCell(cellCol).toString();
                                 System.out.println("Cell Value ===> "+pdtmp.param);
                             }
+
                             prcsReturnValue = engine.processRequest(pdtmpSheet);
                             pdtmp.param = paramLoop;
                             //System.out.println("Prcs Return Value : "+ prcsReturnValue);
@@ -284,6 +289,28 @@ class ProcessQueue implements Runnable {
                 long startTime = System.currentTimeMillis();
                 if (processData.active.equals("A")){
                     //prcsReturnValue = engine.processRequest(rowNext);
+                    // 14-Feb-2018 Vijay C -- Start
+                    if(processData.driver.equals("Control") && processData.action.equals("If")){
+                        ifBlockBegin = true;
+                        ifBlockEnd = false;
+                        if(engine.getBinvalue(processData.param).equals(processData.match)){
+                            System.out.println("IF success");
+                            ifBlockStatus = true;
+                            continue;
+                        }else {
+                            ifBlockStatus = false;
+                        }
+                    }
+                    if(processData.driver.equals("Control") && processData.action.equals("End_If")){
+                        ifBlockEnd = true;
+                        ifBlockBegin = false;
+                        ifBlockStatus = false;
+                        continue;
+                    }
+                    if (ifBlockBegin && !ifBlockStatus && !ifBlockEnd){
+                         continue;
+                    }
+                    // 14-Feb-2018 Vijay C -- end
                     prcsReturnValue = engine.processRequest(processData);
                     //System.out.println("Prcs Return Value : "+ prcsReturnValue);
                     if(prcsReturnValue > 0 && testCaseStatus.equals("PASS")){
