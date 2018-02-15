@@ -211,7 +211,29 @@ class ProcessQueue implements Runnable {
                                 pdtmpSheet.param = excelWorkbook.getSheet(sheetName).getRow(cellRow).getCell(cellCol).toString();
                                 System.out.println("Cell Value ===> "+pdtmp.param);
                             }
+                            // 14-Feb-2018 Vijay C -- Start
+                            if(pdtmp.driver.equals("Control") && pdtmp.action.equals("If")){
+                                ifBlockBegin = true;
+                                ifBlockEnd = false;
 
+                                if(engine.getBinvalue(pdtmp.param).equals(pdtmp.match)){
+                                    System.out.println("IF success");
+                                    ifBlockStatus = true;
+                                    continue;
+                                }else {
+                                    ifBlockStatus = false;
+                                }
+                            }
+                            if(pdtmp.driver.equals("Control") && pdtmp.action.equals("End_If")){
+                                ifBlockEnd = true;
+                                ifBlockBegin = false;
+                                ifBlockStatus = false;
+                                continue;
+                            }
+                            if (ifBlockBegin && !ifBlockStatus && !ifBlockEnd){
+                                continue;
+                            }
+                            // 14-Feb-2018 Vijay C -- end
                             prcsReturnValue = engine.processRequest(pdtmpSheet);
                             pdtmp.param = paramLoop;
                             //System.out.println("Prcs Return Value : "+ prcsReturnValue);
@@ -293,12 +315,83 @@ class ProcessQueue implements Runnable {
                     if(processData.driver.equals("Control") && processData.action.equals("If")){
                         ifBlockBegin = true;
                         ifBlockEnd = false;
-                        if(engine.getBinvalue(processData.param).equals(processData.match)){
-                            System.out.println("IF success");
-                            ifBlockStatus = true;
-                            continue;
-                        }else {
-                            ifBlockStatus = false;
+                        // for = (equal)
+                        if(processData.type.equals("=")) {
+                            if (engine.getBinvalue(processData.param).equals(processData.match)) {
+                                System.out.println("IF success");
+                                ifBlockStatus = true;
+                                continue;
+                            } else {
+                                ifBlockStatus = false;
+                            }
+                        }
+                        // for > greater than
+                        if(processData.type.equals(">")) {
+                            int param = Integer.parseInt(processData.param);
+                            int match = Integer.parseInt(processData.match);
+                            if (match > param) {
+                                System.out.println("IF success");
+                                ifBlockStatus = true;
+                                continue;
+                            } else {
+                                ifBlockStatus = false;
+                            }
+                        }
+                        // for < less than
+                        if(processData.type.equals("<")) {
+                            int param = Integer.parseInt(processData.param);
+                            int match = Integer.parseInt(processData.match);
+                            if (match < param) {
+                                System.out.println("IF success");
+                                ifBlockStatus = true;
+                                continue;
+                            } else {
+                                ifBlockStatus = false;
+                            }
+                        }
+                        // for >= greater than equal
+                        if(processData.type.equals(">=")) {
+                            int param = Integer.parseInt(processData.param);
+                            int match = Integer.parseInt(processData.match);
+                            if (match >= param) {
+                                System.out.println("IF success");
+                                ifBlockStatus = true;
+                                continue;
+                            } else {
+                                ifBlockStatus = false;
+                            }
+                        }
+                        // for <= less than equal
+                        if(processData.type.equals("<=")) {
+                            int param = Integer.parseInt(processData.param);
+                            int match = Integer.parseInt(processData.match);
+                            if (match <= param) {
+                                System.out.println("IF success");
+                                ifBlockStatus = true;
+                                continue;
+                            } else {
+                                ifBlockStatus = false;
+                            }
+                        }
+                        // for TRUE
+                        if(processData.type.equals("TRUE")) {
+                            if (engine.getBinvalue(processData.param).equals(processData.match)) {
+                                System.out.println("IF success");
+                                ifBlockStatus = true;
+                                continue;
+                            } else {
+                                ifBlockStatus = false;
+                            }
+                        }
+                        // for FALSE
+                        if(processData.type.equals("FALSE")) {
+                            if (engine.getBinvalue(processData.param).equals(processData.match)) {
+                                System.out.println("IF success");
+                                ifBlockStatus = true;
+                                continue;
+                            } else {
+                                ifBlockStatus = false;
+                            }
                         }
                     }
                     if(processData.driver.equals("Control") && processData.action.equals("End_If")){
