@@ -200,6 +200,7 @@ class ProcessQueue implements Runnable {
 
                         if(functionBegin && !functionEnd){
                             funcData.testCaseID = processData.testCaseID;
+                            funcData.seqNo = processData.seqNo+"."+funcData.seqNo;
                             System.out.println("Calling from function");
                             prcsReturnValue = engine.processRequest(funcData);
                             // End Time
