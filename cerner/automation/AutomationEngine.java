@@ -56,8 +56,10 @@ class ProcessQueue implements Runnable {
         boolean ifBlockStatus =false;
 
         ArrayList<ProcessData> processDataList = new ArrayList<ProcessData>();
+        ArrayList<ProcessData> funcDataList = new ArrayList<ProcessData>();
         int loopCount = 0;
         ProcessData processData = new ProcessData();
+        //ProcessData funcData = new ProcessData();
         String prevTestCaseID = " ";
         String currentTestCaseID = " ";
         String currentTestCaseDescr = " ";
@@ -94,6 +96,7 @@ class ProcessQueue implements Runnable {
             Workbook excelWorkbook = excelFileDriver.open();
             Sheet excelSheetTestCase = null;
             Iterator<Row> rowIterator = null;
+            Iterator<Row> funcRowIterator = null;
             Row row = null;
             //----- End ------
                         //Get XML File path
@@ -130,6 +133,33 @@ class ProcessQueue implements Runnable {
             //Get Screenshot file path
             engine.setScreenShotPath(screenShotFilePath);
             Sheet sheet = excelWorkbook.getSheetAt(0);
+            Sheet funcSheet = excelWorkbook.getSheet("Functions");
+            //Load function in memory 17-Feb-2018 Start
+            System.out.println("-----Loading functions----");
+            funcRowIterator = funcSheet.iterator();
+            int funcCount = 0;
+            int funcRowCount = 0;
+            String currentFuncName = null;
+            String preFuncName = null;
+            while (funcRowIterator.hasNext()){
+                //Skip Header Row
+                ProcessData funcDataNew = new ProcessData(funcRowIterator.next());
+                if(funcRowCount == 0){
+                    funcRowCount += 1;
+                    //System.out.println("Skipping Header row");
+                    continue;
+                }
+                funcDataList.add(funcDataNew);
+                currentFuncName = funcDataNew.testCaseDescr;
+                //System.out.println("Prev Function : "+preFuncName+" Current Function : "+currentFuncName);
+                if(!currentFuncName.equals(preFuncName)){
+                    funcCount += 1;
+                }
+                preFuncName = currentFuncName;
+                funcRowCount += 1;
+            }
+            System.out.println(funcCount+ " Function(s) Loaded successfully");
+            //Load function in memory 17-Feb-2018 End
             //excelWorkbook.getSheet(s)
 
             rowIterator = sheet.iterator();
@@ -141,7 +171,59 @@ class ProcessQueue implements Runnable {
                     i++;
                     continue;
                 }
+                long startTime = System.currentTimeMillis();
                 processData.copyData(rowNext);
+
+                // Function Call 17/Feb/2018 - Start
+                if(processData.driver.equals("Control") && processData.action.equals("Function") && processData.type.equals("Call") ){
+                    // Function Call detected
+                    System.out.println("Function Call detected");
+                    boolean functionBegin = false;
+                    boolean functionEnd = false;
+                    Iterator<ProcessData> funcIterator = funcDataList.iterator();
+                    while (funcIterator.hasNext()){
+                        System.out.println("Inside function while");
+                        ProcessData funcData =  funcIterator.next();
+                        System.out.println("Func : "+funcData.testCaseDescr+" "+funcData.type+" PrcsData param : "+processData.param);
+                        if(funcData.testCaseDescr.equals(processData.param) && funcData.type.equals("Begin")){
+                            functionBegin = true;
+                            continue;
+                        }
+                        if(funcData.testCaseDescr.equals(processData.param) && funcData.type.equals("End")){
+                            functionEnd = true;
+                            continue;
+                        }
+                        if(functionBegin && functionEnd){
+
+                            break;
+                        }
+
+                        if(functionBegin && !functionEnd){
+                            funcData.testCaseID = processData.testCaseID;
+                            System.out.println("Calling from function");
+                            prcsReturnValue = engine.processRequest(funcData);
+                            // End Time
+                            long endTime = System.currentTimeMillis();
+                            // Time Taken
+                            long execTime = endTime - startTime;
+                            execTime = execTime/1000;
+                            //System.out.println("Execution Time : "+execTime);
+                            rootElement.appendChild(engine.getXMLProcessNode(document,funcData,prcsReturnValue,execTime,engine.errorString,engine.errorStringLong,engine.screenShotName));
+                            //Resetting error string
+                            engine.errorString = " ";
+                            engine.errorStringLong =" ";
+                            engine.screenShotName = " ";
+                            //System.out.println("OnError : "+rowNext.getCell(10).getRichStringCellValue().getString()+" prcs : "+prcsReturnValue);
+                            if(processData.onError.equals("Stop") && prcsReturnValue != 0){
+                                break;
+                            }
+                        }
+
+
+                    }
+                    continue;
+                }
+                // Function Call 17/Feb/2018 - End
                 // Looping Start - Capture Looping block in List
                 if(processData.driver.equals("Control")){
                     if(processData.action.equals("For") &&
@@ -197,7 +279,7 @@ class ProcessQueue implements Runnable {
                             rootElement = testCase;
                         }
                         // Start Time
-                        long startTime = System.currentTimeMillis();
+
                         if (pdtmp.active.equals("A")){
                             //prcsReturnValue = engine.processRequest(rowNext);
                             if(pdtmp.param.substring(0,2).equals("S:")){
@@ -308,7 +390,7 @@ class ProcessQueue implements Runnable {
                 // Added - Vijay C End
                 //System.out.println("Line Status "+ rowNext.getCell(9).getRichStringCellValue().getString());
                 // Start Time
-                long startTime = System.currentTimeMillis();
+                //long startTime = System.currentTimeMillis();
                 if (processData.active.equals("A")){
                     //prcsReturnValue = engine.processRequest(rowNext);
                     // 14-Feb-2018 Vijay C -- Start
@@ -404,7 +486,9 @@ class ProcessQueue implements Runnable {
                          continue;
                     }
                     // 14-Feb-2018 Vijay C -- end
-                    prcsReturnValue = engine.processRequest(processData);
+                    if(!processData.driver.equals("Control") && !processData.action.equals("Function")) {
+                        prcsReturnValue = engine.processRequest(processData);
+                    }
                     //System.out.println("Prcs Return Value : "+ prcsReturnValue);
                     if(prcsReturnValue > 0 && testCaseStatus.equals("PASS")){
                         testCaseStatus = "FAIL";
